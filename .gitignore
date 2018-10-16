@@ -1,0 +1,6 @@
+.metadata/
+TestBot/
+*/.settings/
+*/.classpath
+*/.project
+*/bin/
