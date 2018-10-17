@@ -21,4 +21,22 @@ public class Networking {
 			throw new IllegalStateException("Exception reading line!");
 		}
 	}
+	public static void spawnShip() {
+		System.out.print("g ");
+	}
+	public static void transformShipIntoDropoffSite(Ship ship) {
+		Networking.transformShipIntoDropoffSite(ship.getShipId());
+	}
+	public static void transformShipIntoDropoffSite(int id) {
+		System.out.print("c " + id + ' ');
+	}
+	public static void move(Ship ship, Direction direction) {
+		Networking.move(ship.getShipId(), direction);
+	}
+	public static void move(int id, Direction direction) {
+		System.out.print("m " + id + ' ' + direction.getCharValue() + ' ');
+	}
+	public static void endTurn() {
+		System.out.println();
+	}
 }
