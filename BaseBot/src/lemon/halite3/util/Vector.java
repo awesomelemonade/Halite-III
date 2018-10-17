@@ -2,7 +2,7 @@ package lemon.halite3.util;
 
 import java.util.StringTokenizer;
 
-public class Vector {
+public class Vector implements Comparable<Vector> {
 	private int x;
 	private int y;
 	public Vector(int x, int y) {
@@ -12,10 +12,32 @@ public class Vector {
 	public Vector(StringTokenizer tokenizer) {
 		this(Integer.parseInt(tokenizer.nextToken()), Integer.parseInt(tokenizer.nextToken()));
 	}
+	public Vector add(Direction direction, int modX, int modY) {
+		return this.add(direction.getOffsetVector(), modX, modY);
+	}
+	public Vector add(Vector offset, int modX, int modY) {
+		return new Vector(((x + offset.getX()) % modX + modX) % modX, ((y + offset.getY()) % modY + modY) % modY);
+	}
 	public int getX() {
 		return x;
 	}
 	public int getY() {
 		return y;
+	}
+	@Override
+	public int hashCode() {
+		return GameConstants.MAX_MAP_HEIGHT * x + y;
+	}
+	@Override
+	public boolean equals(Object object) {
+		if (object instanceof Vector) {
+			Vector vector = (Vector) object;
+			return x == vector.getX() && y == vector.getY();
+		}
+		return false;
+	}
+	@Override
+	public int compareTo(Vector vector) {
+		return Integer.compareUnsigned(this.hashCode(), vector.hashCode());
 	}
 }

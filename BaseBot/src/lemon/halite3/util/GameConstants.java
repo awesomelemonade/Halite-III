@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GameConstants {
+	public static final int MAX_MAP_WIDTH = 64;
+	public static final int MAX_MAP_HEIGHT = 64;
 	/** The maximum amount of halite a ship can carry. */
     public static int MAX_HALITE;
     /** The cost to build a single ship. */

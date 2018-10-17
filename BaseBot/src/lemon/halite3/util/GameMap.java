@@ -60,15 +60,21 @@ public class GameMap {
 			}
 		}
 	}
+	public int getHalite(Vector location) {
+		return this.getHalite(location.getX(), location.getY());
+	}
+	public int getHalite(int x, int y) {
+		return halite[x][y];
+	}
 	public void updateShip(Ship ship) {
 		ships[ship.getLocation().getX()][ship.getLocation().getY()] = ship;
 		lastUpdated[ship.getLocation().getX()][ship.getLocation().getY()] = currentTurn;
 	}
-	public Ship getShip(int x, int y) {
-		return lastUpdated[x][y] == currentTurn ? ships[x][y] : null;
-	}
 	public Ship getShip(Vector location) {
 		return this.getShip(location.getX(), location.getY());
+	}
+	public Ship getShip(int x, int y) {
+		return lastUpdated[x][y] == currentTurn ? ships[x][y] : null;
 	}
 	public GamePlayer getMyPlayer() {
 		return players[playerId];

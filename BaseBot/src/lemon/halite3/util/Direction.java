@@ -28,7 +28,7 @@ public enum Direction {
 	public char getCharValue() {
 		return charValue;
 	}
-	public Vector getOffset() {
+	public Vector getOffsetVector() {
 		return offset;
 	}
 }
