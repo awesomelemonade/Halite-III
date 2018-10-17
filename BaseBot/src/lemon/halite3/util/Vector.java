@@ -24,6 +24,15 @@ public class Vector implements Comparable<Vector> {
 	public int getY() {
 		return y;
 	}
+	public int getManhattanDistance(Vector vector, int modX, int modY) {
+		return getWrapDistance(x, vector.getX(), modX) + getWrapDistance(y, vector.getY(), modY);
+	}
+	public int getWrapDistance(int a, int b, int mod) {
+		if (a > b) {
+			return getWrapDistance(b, a, mod);
+		}
+		return Math.min(a + mod - b, b - a);
+	}
 	@Override
 	public int hashCode() {
 		return GameConstants.MAX_MAP_HEIGHT * x + y;
