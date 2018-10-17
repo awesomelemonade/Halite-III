@@ -5,6 +5,8 @@ import java.util.StringTokenizer;
 public class GameMap {
 	private int numPlayers;
 	private int playerId;
+	private int width;
+	private int height;
 	private GamePlayer[] players;
 	private int currentTurn;
 	private int[][] halite;
@@ -21,15 +23,15 @@ public class GameMap {
 			players[player.getPlayerId()] = player;
 		}
 		StringTokenizer mapSizeTokenizer = new StringTokenizer(Networking.readLine());
-		int mapWidth = Integer.parseInt(mapSizeTokenizer.nextToken());
-		int mapHeight = Integer.parseInt(mapSizeTokenizer.nextToken());
-		this.halite = new int[mapWidth][mapHeight];
-		this.ships = new Ship[mapWidth][mapHeight];
-		this.lastUpdated = new int[mapWidth][mapHeight];
+		width = Integer.parseInt(mapSizeTokenizer.nextToken());
+		height = Integer.parseInt(mapSizeTokenizer.nextToken());
+		this.halite = new int[width][height];
+		this.ships = new Ship[width][height];
+		this.lastUpdated = new int[width][height];
 		this.currentTurn = -1;
-		for (int i = 0; i < mapWidth; ++i) {
+		for (int i = 0; i < width; ++i) {
 			StringTokenizer tokenizer = new StringTokenizer(Networking.readLine());
-			for (int j = 0; j < mapHeight; ++j) {
+			for (int j = 0; j < height; ++j) {
 				this.halite[i][j] = Integer.parseInt(tokenizer.nextToken());
 			}
 		}
@@ -73,5 +75,11 @@ public class GameMap {
 	}
 	public int getMyPlayerId() {
 		return playerId;
+	}
+	public int getWidth() {
+		return width;
+	}
+	public int getHeight() {
+		return height;
 	}
 }
