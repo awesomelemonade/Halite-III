@@ -3,7 +3,6 @@ package lemon.halite3.strategy;
 import java.util.HashMap;
 import java.util.Map;
 
-import lemon.halite3.util.DebugLog;
 import lemon.halite3.util.Direction;
 import lemon.halite3.util.GameConstants;
 import lemon.halite3.util.GameMap;
@@ -18,8 +17,6 @@ public class DP {
 		this.gameMap = gameMap;
 		this.targetLocation = targetLocation;
 	}
-	private int maxRecursions = 9999;
-	
 	private void putDP(Map<Vector, Integer> mineMap, int halite, int turns, int x, int y, int value) {
 		if (!dp.containsKey(mineMap)) {
 			dp.put(mineMap, new HashMap<Integer, Map<Integer, Map<Integer, Map<Integer, Integer>>>>());
@@ -78,11 +75,6 @@ public class DP {
 		return bestDirection;
 	}
 	public int calculate(int halite, int turns, Vector location, Map<Vector, Integer> mineMap) {
-		maxRecursions--;
-		if(maxRecursions <= 0) {
-			DebugLog.log("Exiting - Reached maxRecursions");
-			return -999999;
-		}
 		// DebugLog.log("dp: " + halite + " - " + turns + " - " + location + " - " + mineMap + " | " + ((System.nanoTime() - BasicStrategy.startTime) / 1000000000.0));
 		// Check DP
 		int candidateFromDP = getDP(mineMap, halite, turns, location.getX(), location.getY());

@@ -11,6 +11,7 @@ public class Ship {
 		this.playerId = playerId;
 		this.shipId = shipId;
 		this.location = location;
+		this.halite = halite;
 	}
 	public int getPlayerId() {
 		return playerId;
