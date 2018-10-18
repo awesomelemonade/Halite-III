@@ -32,7 +32,7 @@ public class GameMap {
 		for (int i = 0; i < width; ++i) {
 			StringTokenizer tokenizer = new StringTokenizer(Networking.readLine());
 			for (int j = 0; j < height; ++j) {
-				this.halite[i][j] = Integer.parseInt(tokenizer.nextToken());
+				this.halite[j][i] = Integer.parseInt(tokenizer.nextToken());
 			}
 		}
 	}
@@ -87,5 +87,8 @@ public class GameMap {
 	}
 	public int getHeight() {
 		return height;
+	}
+	public int getCurrentTurn() {
+		return currentTurn;
 	}
 }

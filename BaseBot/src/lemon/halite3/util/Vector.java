@@ -49,4 +49,8 @@ public class Vector implements Comparable<Vector> {
 	public int compareTo(Vector vector) {
 		return Integer.compareUnsigned(this.hashCode(), vector.hashCode());
 	}
+	@Override
+	public String toString() {
+		return String.format("Vector[%d, %d]", x, y);
+	}
 }
