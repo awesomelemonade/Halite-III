@@ -49,7 +49,33 @@ public class DP {
 		}
 		return -1;
 	}
-	
+	public Direction trace(int halite, int turns, Vector location, Map<Vector, Integer> mineMap) {
+		int bestHalite = -9999;
+		Direction bestDirection = null;
+		int haliteLeft = getHaliteLeft(gameMap.getHalite(location), mineMap.getOrDefault(location, 0));
+		int moveCost = (int) Math.floor(haliteLeft * 1.0 / GameConstants.MOVE_COST_RATIO);
+		
+		if (halite >= moveCost) { // Check if there is enough halite to move
+			for (Direction direction: Direction.CARDINAL_DIRECTIONS) {
+				Vector newLocation = location.add(direction, gameMap.getWidth(), gameMap.getHeight());
+				int candidate = getDP(mineMap, halite - moveCost, turns - 1, newLocation.getX(), newLocation.getY());
+				if (candidate > bestHalite) {
+					bestHalite = candidate;
+					bestDirection = direction;
+				}
+			}
+		}
+		// Option 5 - Stand still and mine
+		if (location.getManhattanDistance(targetLocation, gameMap.getWidth(), gameMap.getHeight()) <= turns) {
+			int mined = (int) Math.ceil(haliteLeft * 1.0 / GameConstants.EXTRACT_RATIO);
+			int candidate = getDP(increment(mineMap, location, 1), halite + mined, turns - 1, location.getX(), location.getY());
+			if (candidate > bestHalite) {
+				bestHalite = candidate;
+				bestDirection = Direction.STILL;
+			}
+		}
+		return bestDirection;
+	}
 	public int calculate(int halite, int turns, Vector location, Map<Vector, Integer> mineMap) {
 		maxRecursions--;
 		if(maxRecursions <= 0) {

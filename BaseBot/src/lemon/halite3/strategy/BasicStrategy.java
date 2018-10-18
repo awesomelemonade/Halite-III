@@ -3,6 +3,7 @@ package lemon.halite3.strategy;
 import java.util.HashMap;
 
 import lemon.halite3.util.DebugLog;
+import lemon.halite3.util.Direction;
 import lemon.halite3.util.GameMap;
 import lemon.halite3.util.Networking;
 import lemon.halite3.util.Ship;
@@ -27,6 +28,9 @@ public class BasicStrategy implements Strategy {
 						ship.getShipId(), ship.getLocation().toString(), ship.getHalite()));
 				DebugLog.log("Calculated: " + dp.calculate(ship.getHalite(), 5, ship.getLocation(),
 						new HashMap<Vector, Integer>()));
+				Direction direction = dp.trace(ship.getHalite(), 5, ship.getLocation(), new HashMap<Vector, Integer>());
+				DebugLog.log("Direction: " + direction);
+				Networking.move(ship, direction);
 			}
 			Networking.endTurn();
 		}
