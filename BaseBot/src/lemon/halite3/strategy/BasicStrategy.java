@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 import lemon.halite3.util.DebugLog;
 import lemon.halite3.util.Direction;
+import lemon.halite3.util.GameConstants;
 import lemon.halite3.util.GameMap;
 import lemon.halite3.util.Networking;
 import lemon.halite3.util.Ship;
@@ -16,12 +17,12 @@ public class BasicStrategy implements Strategy {
 	}
 	@Override
 	public void run(GameMap gameMap) {
-		gameMap.update();
-		Networking.spawnShip();
-		Networking.endTurn();
 		while (true) {
 			gameMap.update();
 			DebugLog.log("New Turn: " + gameMap.getCurrentTurn() + " - numShips=" + gameMap.getMyPlayer().getShips().size());
+			if (gameMap.getMyPlayer().getShips().size() == 0 && gameMap.getCurrentTurn() + 20 < GameConstants.MAX_TURNS) {
+				Networking.spawnShip();
+			}
 			DP dp = new DP(gameMap, gameMap.getMyPlayer().getShipyardLocation());
 			for (Ship ship : gameMap.getMyPlayer().getShips().values()) {
 				Networking.move(ship, calculateDirection(dp, ship, 5));
