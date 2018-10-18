@@ -52,7 +52,7 @@ public class DP {
 	public Direction trace(int halite, int turns, Vector location, Map<Vector, Integer> mineMap) {
 		int bestHalite = -9999;
 		Direction bestDirection = null;
-		int haliteLeft = getHaliteLeft(gameMap.getHalite(location), mineMap.getOrDefault(location, 0));
+		int haliteLeft = gameMap.getHalite(location) - mineMap.getOrDefault(location, 0);
 		int moveCost = (int) Math.floor(haliteLeft * 1.0 / GameConstants.MOVE_COST_RATIO);
 		
 		if (halite >= moveCost) { // Check if there is enough halite to move
@@ -68,6 +68,7 @@ public class DP {
 		// Option 5 - Stand still and mine
 		if (location.getManhattanDistance(targetLocation, gameMap.getWidth(), gameMap.getHeight()) <= turns) {
 			int mined = (int) Math.ceil(haliteLeft * 1.0 / GameConstants.EXTRACT_RATIO);
+			mined = Math.min(mined, GameConstants.MAX_HALITE - halite);
 			int candidate = getDP(increment(mineMap, location, 1), halite + mined, turns - 1, location.getX(), location.getY());
 			if (candidate > bestHalite) {
 				bestHalite = candidate;
@@ -104,8 +105,7 @@ public class DP {
 		// Option 1-4 - Move in cardinal directions
 		// TODO: pruning with Manhatten distance
 		// TODO: Inspired Move Cost?
-		// Cannot use pow because they round each time in between
-		int haliteLeft = getHaliteLeft(gameMap.getHalite(location), mineMap.getOrDefault(location, 0));
+		int haliteLeft = gameMap.getHalite(location) - mineMap.getOrDefault(location, 0);
 		int moveCost = (int) Math.floor(haliteLeft * 1.0 / GameConstants.MOVE_COST_RATIO);
 		
 		if (halite >= moveCost) { // Check if there is enough halite to move
@@ -119,16 +119,11 @@ public class DP {
 		// Option 5 - Stand still and mine
 		if (location.getManhattanDistance(targetLocation, gameMap.getWidth(), gameMap.getHeight()) <= turns) {
 			int mined = (int) Math.ceil(haliteLeft * 1.0 / GameConstants.EXTRACT_RATIO);
-			bestHalite = Math.max(bestHalite, calculate(halite + mined, turns - 1, location, increment(mineMap, location, 1)));
+			mined = Math.min(mined, GameConstants.MAX_HALITE - halite);
+			bestHalite = Math.max(bestHalite, calculate(halite + mined, turns - 1, location, increment(mineMap, location, mined)));
 		}
 		putDP(mineMap, halite, turns, location.getX(), location.getY(), bestHalite);
 		return bestHalite;
-	}
-	public int getHaliteLeft(int initial, int mines) {
-		for (int i = 0; i < mines; ++i) {
-			initial -= Math.ceil(initial * 1.0 / GameConstants.EXTRACT_RATIO); // TODO: Why doesn't this error?
-		}
-		return initial;
 	}
 	public Map<Vector, Integer> increment(Map<Vector, Integer> map, Vector vector, int value){
 		Map<Vector, Integer> newMap = new HashMap<Vector, Integer>(map);

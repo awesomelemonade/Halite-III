@@ -24,15 +24,19 @@ public class BasicStrategy implements Strategy {
 			DebugLog.log("New Turn: " + gameMap.getCurrentTurn() + " - numShips=" + gameMap.getMyPlayer().getShips().size());
 			DP dp = new DP(gameMap, gameMap.getMyPlayer().getShipyardLocation());
 			for (Ship ship : gameMap.getMyPlayer().getShips().values()) {
-				DebugLog.log(String.format("DP for Ship %d - %s - w/ %d halite",
-						ship.getShipId(), ship.getLocation().toString(), ship.getHalite()));
-				DebugLog.log("Calculated: " + dp.calculate(ship.getHalite(), 5, ship.getLocation(),
-						new HashMap<Vector, Integer>()));
-				Direction direction = dp.trace(ship.getHalite(), 5, ship.getLocation(), new HashMap<Vector, Integer>());
-				DebugLog.log("Direction: " + direction);
-				Networking.move(ship, direction);
+				Networking.move(ship, calculateDirection(dp, ship, 5));
 			}
 			Networking.endTurn();
 		}
+	}
+	public Direction calculateDirection(DP dp, Ship ship, int turns) {
+		DebugLog.log(String.format("DP for Ship %d - %s - %d halite",
+				ship.getShipId(), ship.getLocation().toString(), ship.getHalite()));
+		int calculated = dp.calculate(ship.getHalite(), turns, ship.getLocation(),
+				new HashMap<Vector, Integer>());
+		DebugLog.log("\tCalculated: " + calculated);
+		Direction direction = dp.trace(ship.getHalite(), turns, ship.getLocation(), new HashMap<Vector, Integer>());
+		DebugLog.log("\tDirection: " + direction);
+		return direction;
 	}
 }
