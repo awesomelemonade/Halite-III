@@ -12,6 +12,9 @@ public class Vector implements Comparable<Vector> {
 	public Vector(StringTokenizer tokenizer) {
 		this(Integer.parseInt(tokenizer.nextToken()), Integer.parseInt(tokenizer.nextToken()));
 	}
+	public Vector add(Direction direction, GameMap gameMap) {
+		return this.add(direction, gameMap.getWidth(), gameMap.getHeight());
+	}
 	public Vector add(Direction direction, int modX, int modY) {
 		return this.add(direction.getOffsetVector(), modX, modY);
 	}
