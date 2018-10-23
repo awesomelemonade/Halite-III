@@ -18,6 +18,9 @@ public class Vector implements Comparable<Vector> {
 	public Vector add(Direction direction, int modX, int modY) {
 		return this.add(direction.getOffsetVector(), modX, modY);
 	}
+	public Vector add(Vector offset) {
+		return new Vector(x + offset.getX(), y + offset.getY());
+	}
 	public Vector add(Vector offset, int modX, int modY) {
 		return new Vector(((x + offset.getX()) % modX + modX) % modX, ((y + offset.getY()) % modY + modY) % modY);
 	}
