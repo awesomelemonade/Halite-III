@@ -33,7 +33,7 @@ public class QuadTreeStrategy implements Strategy {
 			}
 			HungarianAlgorithm hungarianAlgorithm = new HungarianAlgorithm(costMatrix);
 			int[] assignments = hungarianAlgorithm.execute();
-			System.out.println(Arrays.toString(assignments));
+			DebugLog.log(Arrays.toString(assignments));
 			Networking.endTurn();
 		}
 	}

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
+import lemon.halite3.util.DebugLog;
 import lemon.halite3.util.GameMap;
 import lemon.halite3.util.Vector;
 
@@ -34,6 +35,7 @@ public class QuadTree {
 		return quads;
 	}
 	public Quad getQuad(int x, int y, int width, int height) {
+		DebugLog.log("Quad: " + x + " - " + y + " - " + width + " - " + height);
 		if ((width < 1 && height <= 1) || (width <= 1 && height < 1)) {
 			return new Quad(x, y, width, height, 0);
 		}
@@ -42,7 +44,7 @@ public class QuadTree {
 		}
 		Quad topLeft = getQuad(x, y, width / 2, height / 2);
 		Quad topRight = getQuad(x + width / 2, y, (width + 1) / 2, height / 2);
-		Quad bottomLeft = getQuad(x, y + height / 2, width, (height + 1) / 2);
+		Quad bottomLeft = getQuad(x, y + height / 2, width / 2, (height + 1) / 2);
 		Quad bottomRight = getQuad(x + width / 2, y + height / 2, (width + 1) / 2, (height + 1) / 2);
 		return new Quad(topLeft, topRight, bottomLeft, bottomRight);
 	}
