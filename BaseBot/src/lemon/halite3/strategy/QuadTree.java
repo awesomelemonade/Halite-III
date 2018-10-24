@@ -21,7 +21,7 @@ public class QuadTree {
 		toProcess.add(quad);
 		while (!toProcess.isEmpty()) {
 			Quad quad = toProcess.poll();
-			if (quad.getQuads() == null || quad.getHalite() <= threshold) {
+			if (quad.getQuads() == null || quad.getHalite() <= getSubQuadCount(quad) * threshold) {
 				quads.add(quad);
 			} else {
 				for (Quad q : quad.getQuads()) {
@@ -32,6 +32,18 @@ public class QuadTree {
 			}
 		}
 		return quads;
+	}
+	public int getSubQuadCount(Quad quad) {
+		if (quad.getQuads() == null) {
+			return 0;
+		}
+		int count = 0;
+		for (Quad q : quad.getQuads()) {
+			if (!q.isDegenerate()) {
+				count++;
+			}
+		}
+		return count;
 	}
 	public Quad getQuad(int x, int y, int width, int height) {
 		if ((width < 1 && height <= 1) || (width <= 1 && height < 1)) {
@@ -91,6 +103,9 @@ public class QuadTree {
 		}
 		public Quad getBottomRightQuad() {
 			return quads[3];
+		}
+		public boolean isDegenerate() {
+			return size.getX() < 1 || size.getY() < 1;
 		}
 		@Override
 		public String toString() {

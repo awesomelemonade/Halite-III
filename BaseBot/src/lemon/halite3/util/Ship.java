@@ -30,4 +30,8 @@ public class Ship {
 		return new Ship(playerId, Integer.parseInt(tokenizer.nextToken()),
 				new Vector(tokenizer), Integer.parseInt(tokenizer.nextToken()));
 	}
+	@Override
+	public String toString() {
+		return String.format("Ship[playerId=%d, shipId=%d, location=%s, halite=%d]", playerId, shipId, location.toString(), halite);
+	}
 }
