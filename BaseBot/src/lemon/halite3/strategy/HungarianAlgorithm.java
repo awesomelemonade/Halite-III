@@ -46,7 +46,7 @@ public class HungarianAlgorithm {
 			int index = -1;
 			// Search for a zero that's unassigned
 			for (int j = 0; j < array[0].length; ++j) {
-				if (array[i][j] == 0 && assignmentsByColumn[j] == -1) { //TODO
+				if (array[i][j] == 0 && assignmentsByColumn[j] == -1) {
 					index = j;
 					break;
 				}
@@ -62,28 +62,43 @@ public class HungarianAlgorithm {
 		}
 		// https://math.stackexchange.com/questions/590305/finding-the-minimum-number-of-lines-to-cover-all-zeros-in-an-assignment-problem
 		// Drawing
-		Arrays.fill(newlyMarkedColumns, false);
-		for (int j = 0; j < array[0].length; ++j) {
-			if (!markedColumns[j] && hasZeros[j]) {
-				newlyMarkedColumns[j] = true;
-				markedColumns[j] = true;
-			}
-		}
-		Arrays.fill(newlyMarkedRows, false);
-		for (int j = 0; j < array[0].length; ++j) {
-			if (assignmentsByColumn[j] != -1 && !markedRows[assignmentsByColumn[j]]) {
-				newlyMarkedRows[assignmentsByColumn[j]] = true;
-				markedRows[assignmentsByColumn[j]] = true;
-			}
-		}
-		
-		for (int i = 0; i < array.length; ++i) {
-			if (!markedRows[i]) {
-				for (int j = 0; j < array[0].length; ++j) {
-					newlyMarkedRows[i] |
+		while (changed) {
+			changed = false;
+			Arrays.fill(newlyMarkedColumns, false);
+			for (int i = 0; i < array.length; ++i) {
+				if (newlyMarkedRows[i]) {
+					for (int j = 0; j < array[0].length; ++j) {
+						if (array[i][j] == 0 && (!markedColumns[j])) {
+							markedColumns[j] = true;
+							newlyMarkedColumns[j] = true;
+						}
+					}
 				}
-				newlyMarkedRows[i] = 
+			}
+			Arrays.fill(newlyMarkedRows, false);
+			for (int j = 0; j < array[0].length; ++j) {
+				if (newlyMarkedColumns[j]) {
+					int row = assignmentsByColumn[j];
+					if (!markedRows[row]) {
+						markedRows[row] = true;
+						newlyMarkedRows[row] = true;
+						changed = true;
+					}
+				}
 			}
 		}
+		int numLines = countTrues(markedColumns) + (array.length - countTrues(markedRows));
+		if (numLines == array.length) {
+			
+		}
+	}
+	public int countTrues(boolean[] array) {
+		int counter = 0;
+		for (int i = 0; i < array.length; ++i) {
+			if (array[i]) {
+				counter++;
+			}
+		}
+		return counter;
 	}
 }
