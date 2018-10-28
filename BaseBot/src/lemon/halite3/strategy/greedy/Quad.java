@@ -28,6 +28,10 @@ public class Quad implements Iterable<Vector> {
 	public Iterator<Vector> iterator() {
 		return new QuadIterator(location, size, gameMap.getWidth(), gameMap.getHeight());
 	}
+	@Override
+	public String toString() {
+		return String.format("Quad[location=%s, size=%s]", location, size);
+	}
 	class QuadIterator implements Iterator<Vector> {
 		private Vector location;
 		private Vector size;

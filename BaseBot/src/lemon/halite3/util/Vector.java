@@ -10,6 +10,9 @@ public class Vector implements Comparable<Vector> {
 		array = new Vector[gameMap.getWidth()][gameMap.getHeight()];
 	}
 	public static Vector getInstance(int x, int y) {
+		if (array == null) {
+			return new Vector(x, y);
+		}
 		if (array[x][y] == null) {
 			array[x][y] = new Vector(x, y);
 		}
