@@ -5,9 +5,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
 
 import lemon.halite3.strategy.MoveQueue;
 import lemon.halite3.strategy.Navigation;
@@ -65,9 +67,11 @@ public class GreedyStrategy implements Strategy {
 					int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite() - 50;
 					// BFS search for mine target
 					Deque<Vector> queue = new ArrayDeque<Vector>();
+					Set<Vector> visited = new HashSet<Vector>();
 					MinePlan bestPlan = null;
 					int bestPlanTurns = Integer.MAX_VALUE;
 					queue.add(ship.getLocation());
+					visited.add(ship.getLocation());
 					while (!queue.isEmpty()) {
 						Vector vector = queue.poll();
 						if (bestPlanTurns < vector.getManhattanDistance(vector, gameMap)) {
@@ -87,9 +91,12 @@ public class GreedyStrategy implements Strategy {
 								break;
 							}
 						}
-						// TODO - prevent infinite loops by not adding vectors already visited
 						for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
-							queue.add(vector.add(direction, gameMap));
+							Vector candidate = vector.add(direction, gameMap);
+							if (!visited.contains(candidate)) {
+								queue.add(candidate);
+								visited.add(candidate);
+							}
 						}
 					}
 					// Execute bestPlan
