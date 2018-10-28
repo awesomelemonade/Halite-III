@@ -46,6 +46,6 @@ public class GamePlayer {
 	}
 	public static GamePlayer parsePlayer() {
 		StringTokenizer tokenizer = new StringTokenizer(Networking.readLine());
-		return new GamePlayer(Integer.parseInt(tokenizer.nextToken()), new Vector(tokenizer));
+		return new GamePlayer(Integer.parseInt(tokenizer.nextToken()), Vector.getInstance(tokenizer));
 	}
 }

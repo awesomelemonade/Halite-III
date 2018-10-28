@@ -1,0 +1,152 @@
+package lemon.halite3.strategy.greedy;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+
+import lemon.halite3.strategy.MoveQueue;
+import lemon.halite3.strategy.Strategy;
+import lemon.halite3.util.Direction;
+import lemon.halite3.util.Dropoff;
+import lemon.halite3.util.GameConstants;
+import lemon.halite3.util.GameMap;
+import lemon.halite3.util.Networking;
+import lemon.halite3.util.Ship;
+import lemon.halite3.util.Vector;
+
+public class GreedyStrategy implements Strategy {
+	private GameMap gameMap;
+	@Override
+	public String init(GameMap gameMap) {
+		this.gameMap = gameMap;
+		return "GreedyStrategy";
+	}
+	@Override
+	public void run(GameMap gameMap) {
+		// shipPriority can be optimized using a balanced tree to have O(log(n)) reordering rather than O(n)
+		List<Integer> shipPriorities = new ArrayList<Integer>(); // In order of the last time they dropped off halite
+		while (true) {
+			gameMap.update();
+			MoveQueue moveQueue = new MoveQueue(gameMap);
+			Map<Vector, Integer> mineMap = new HashMap<Vector, Integer>();
+			// updates shipPriority
+			Ship shipyardCandidate = gameMap.getShip(gameMap.getMyPlayer().getShipyardLocation());
+			if (shipyardCandidate != null) {
+				shipPriorities.remove((Object) shipyardCandidate.getShipId());
+				shipPriorities.add(shipyardCandidate.getShipId());
+			}
+			for (Dropoff dropoff : gameMap.getMyPlayer().getDropoffs().values()) {
+				Ship candidate = gameMap.getShip(dropoff.getLocation());
+				if (candidate != null) {
+					shipPriorities.remove((Object) candidate.getShipId());
+					shipPriorities.add(candidate.getShipId());
+				}
+			}
+			// executes turn in order of shipPriority
+			for (int shipId : shipPriorities) {
+				Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
+				// BFS search for mine target
+				Deque<Vector> queue = new ArrayDeque<Vector>();
+				MinePlan bestPlan = null;
+				int bestPlanTurns = Integer.MAX_VALUE;
+				queue.add(ship.getLocation());
+				while (!queue.isEmpty()) {
+					Vector vector = queue.poll();
+					if (bestPlanTurns < vector.getManhattanDistance(vector, gameMap)) {
+						break;
+					}
+					for (int i = 0; i < 8; ++i) {
+						Quad quad = getQuad(vector, i);
+						if (getHaliteCount(quad) > 3000) { // Arbitrary threshold greater than GameConstants.MAX_HALITE
+							MinePlan plan = getMinePlan(mineMap, quad, GameConstants.MAX_HALITE - 50);
+							// Half arbitrary heuristic - TODO: tune weighting
+							int turns = plan.getCount() + plan.getMineMap().keySet().size() + vector.getManhattanDistance(ship.getLocation(), gameMap);
+							if (turns < bestPlanTurns) {
+								bestPlan = plan;
+								bestPlanTurns = turns;
+							}
+							break;
+						}
+					}
+					// TODO - prevent infinite loops by not adding vectors already visited
+					for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
+						queue.add(vector.add(direction, gameMap));
+					}
+				}
+				// Execute bestPlan
+				if (bestPlan != null) {
+					// Apply mineMap
+					for (Vector vector : bestPlan.getMineMap().keySet()) {
+						mineMap.put(vector, mineMap.getOrDefault(vector, 0) + bestPlan.getMineMap().get(vector));
+					}
+					// TODO
+				}
+			}
+			Networking.endTurn();
+		}
+	}
+	public int getHaliteCount(Quad quad) {
+		int halite = 0;
+		for (Vector vector : quad) {
+			halite += gameMap.getHalite(vector);
+		}
+		return halite;
+	}
+	public MinePlan getMinePlan(Map<Vector, Integer> mineMap, Quad quad, int threshold) {
+		Map<Vector, Integer> tempMineMap = new HashMap<Vector, Integer>();
+		PriorityQueue<Vector> queue = new PriorityQueue<Vector>(new Comparator<Vector>() {
+			@Override
+			public int compare(Vector a, Vector b) {
+				int mineA = (int) Math.ceil(((double) (gameMap.getHalite(a) - mineMap.getOrDefault(a, 0) - tempMineMap.getOrDefault(a, 0))) /
+						((double) GameConstants.EXTRACT_RATIO));
+				int mineB = (int) Math.ceil(((double) (gameMap.getHalite(b) - mineMap.getOrDefault(b, 0) - tempMineMap.getOrDefault(b, 0))) /
+						((double) GameConstants.EXTRACT_RATIO));
+				return Integer.compare(mineA, mineB);
+			}
+		});
+		for (Vector vector : quad) {
+			queue.add(vector);
+		}
+		int halite = 0;
+		int count = 0;
+		while (!queue.isEmpty()) {
+			Vector vector = queue.poll();
+			int mine = (int) Math.ceil(((double) (gameMap.getHalite(vector) - mineMap.getOrDefault(vector, 0) - tempMineMap.getOrDefault(vector, 0))) /
+					((double) GameConstants.EXTRACT_RATIO));
+			halite += mine;
+			count++;
+			tempMineMap.put(vector, tempMineMap.getOrDefault(vector, 0) + mine);
+			if (halite >= threshold) {
+				return new MinePlan(quad, tempMineMap, count);
+			}
+		}
+		return null;
+	}
+	public Quad getQuad(Vector location, int radius) {
+		return new Quad(gameMap, location.add(-radius, -radius, gameMap), Vector.getInstance(radius * 2 + 1, radius * 2 + 1));
+	}
+	class MinePlan {
+		private Quad quad;
+		private Map<Vector, Integer> mineMap;
+		private int count;
+		public MinePlan(Quad quad, Map<Vector, Integer> mineMap, int count) {
+			this.quad = quad;
+			this.mineMap = mineMap;
+			this.count = count;
+		}
+		public Quad getQuad() {
+			return quad;
+		}
+		public Map<Vector, Integer> getMineMap() {
+			return mineMap;
+		}
+		public int getCount() {
+			return count;
+		}
+	}
+}

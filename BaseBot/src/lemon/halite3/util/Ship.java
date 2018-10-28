@@ -28,7 +28,7 @@ public class Ship {
 	public static Ship parseShip(int playerId) {
 		StringTokenizer tokenizer = new StringTokenizer(Networking.readLine());
 		return new Ship(playerId, Integer.parseInt(tokenizer.nextToken()),
-				new Vector(tokenizer), Integer.parseInt(tokenizer.nextToken()));
+				Vector.getInstance(tokenizer), Integer.parseInt(tokenizer.nextToken()));
 	}
 	@Override
 	public String toString() {

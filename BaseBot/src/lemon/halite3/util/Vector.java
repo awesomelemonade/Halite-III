@@ -5,12 +5,22 @@ import java.util.StringTokenizer;
 public class Vector implements Comparable<Vector> {
 	private int x;
 	private int y;
-	public Vector(int x, int y) {
+	private static Vector[][] array;
+	public static void init(GameMap gameMap) {
+		array = new Vector[gameMap.getWidth()][gameMap.getHeight()];
+	}
+	public static Vector getInstance(int x, int y) {
+		if (array[x][y] == null) {
+			array[x][y] = new Vector(x, y);
+		}
+		return array[x][y];
+	}
+	public static Vector getInstance(StringTokenizer tokenizer) {
+		return Vector.getInstance(Integer.parseInt(tokenizer.nextToken()), Integer.parseInt(tokenizer.nextToken()));
+	}
+	protected Vector(int x, int y) {
 		this.x = x;
 		this.y = y;
-	}
-	public Vector(StringTokenizer tokenizer) {
-		this(Integer.parseInt(tokenizer.nextToken()), Integer.parseInt(tokenizer.nextToken()));
 	}
 	public Vector add(Direction direction, GameMap gameMap) {
 		return this.add(direction, gameMap.getWidth(), gameMap.getHeight());
@@ -19,7 +29,7 @@ public class Vector implements Comparable<Vector> {
 		return this.add(direction.getOffsetVector(), modX, modY);
 	}
 	public Vector add(Vector offset) {
-		return new Vector(x + offset.getX(), y + offset.getY());
+		return Vector.getInstance(x + offset.getX(), y + offset.getY());
 	}
 	public Vector add(Vector offset, GameMap gameMap) {
 		return add(offset, gameMap.getWidth(), gameMap.getHeight());
@@ -31,7 +41,7 @@ public class Vector implements Comparable<Vector> {
 		return add(x, y, gameMap.getWidth(), gameMap.getHeight());
 	}
 	public Vector add(int x, int y, int modX, int modY) {
-		return new Vector(((this.x + x) % modX + modX) % modX, ((this.y + y) % modY + modY) % modY);
+		return Vector.getInstance(((this.x + x) % modX + modX) % modX, ((this.y + y) % modY + modY) % modY);
 	}
 	public int getX() {
 		return x;

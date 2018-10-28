@@ -22,6 +22,6 @@ public class Dropoff {
 	}
 	public static Dropoff parseDropoff(int playerId) {
 		StringTokenizer tokenizer = new StringTokenizer(Networking.readLine());
-		return new Dropoff(playerId, Integer.parseInt(tokenizer.nextToken()), new Vector(tokenizer));
+		return new Dropoff(playerId, Integer.parseInt(tokenizer.nextToken()), Vector.getInstance(tokenizer));
 	}
 }
