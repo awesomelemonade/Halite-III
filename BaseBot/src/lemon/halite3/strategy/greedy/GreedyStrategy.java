@@ -38,6 +38,7 @@ public class GreedyStrategy implements Strategy {
 	public void run(GameMap gameMap) {
 		// shipPriority can be optimized using a balanced tree to have O(log(n)) reordering rather than O(n)
 		List<Integer> shipPriorities = new ArrayList<Integer>(); // In order of the last time they dropped off halite
+		Set<Integer> returningShips = new HashSet<Integer>();
 		while (true) {
 			gameMap.update();
 			try (Benchmark benchmark = new Benchmark()) {
@@ -64,7 +65,19 @@ public class GreedyStrategy implements Strategy {
 				for (int shipId : shipPriorities) {
 					Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
 					DebugLog.log("Executing Ship: " + ship.toString());
+					// Check if the ship's only option is Direction.STILL
+					if (ship.getHalite() < gameMap.getHalite(ship.getLocation()) / GameConstants.MOVE_COST_RATIO) {
+						moveQueue.move(ship, Direction.STILL);
+						continue;
+					}
 					int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite() - 50;
+					if (haliteNeeded <= 0) {
+						returningShips.add(ship.getShipId());
+					}
+					if (returningShips.contains(ship.getShipId())) {
+						moveQueue.move(ship, navigation.navigate(ship.getLocation(), gameMap.getMyPlayer().getShipyardLocation())); // TODO dropoffs
+						continue;
+					}
 					// BFS search for mine target
 					Deque<Vector> queue = new ArrayDeque<Vector>();
 					Set<Vector> visited = new HashSet<Vector>();
@@ -109,11 +122,10 @@ public class GreedyStrategy implements Strategy {
 					}
 				}
 				moveQueue.resolveCollisions(shipPriorities);
-				// TODO: Try to spawn a ship
+				// Try to spawn a ship
 				if (moveQueue.isSafe(gameMap.getMyPlayer().getShipyardLocation())) {
 					if (gameMap.getMyPlayer().getShips().size() == 0 && 
 							gameMap.getMyPlayer().getHalite() >= GameConstants.SHIP_COST && // TODO - consider cost of building dropoffs in the same turn
-							isSafeToSpawnShip(gameMap) && 
 							gameMap.getCurrentTurn() + 150 < GameConstants.MAX_TURNS) {
 						Networking.spawnShip();
 					}
@@ -123,10 +135,6 @@ public class GreedyStrategy implements Strategy {
 				Networking.endTurn();
 			}
 		}
-	}
-	public boolean isSafeToSpawnShip(GameMap gameMap) {
-		Ship ship = gameMap.getShip(gameMap.getMyPlayer().getShipyardLocation());
-		return ship == null || ship.getPlayerId() != gameMap.getMyPlayerId();
 	}
 	public void handleMicro(MoveQueue moveQueue, Ship ship, MinePlan plan) {
 		// TODO: Travelling Salesman? - directionCurrently a greedy algorithm
