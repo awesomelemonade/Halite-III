@@ -64,7 +64,7 @@ public class QuadTree {
 		private int halite;
 		private Quad[] quads;
 		public Quad(int x, int y, int width, int height, int halite) {
-			this(new Vector(x, y), new Vector(width, height), halite);
+			this(Vector.getInstance(x, y), Vector.getInstance(width, height), halite);
 		}
 		public Quad(Vector location, Vector size, int halite, Quad[] quads) {
 			this.location = location;
