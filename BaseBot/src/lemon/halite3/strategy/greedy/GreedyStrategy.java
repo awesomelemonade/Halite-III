@@ -104,7 +104,7 @@ public class GreedyStrategy implements Strategy {
 						// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
 						for (int i = 0; i < 8; ++i) {
 							Quad quad = getQuad(vector, i);
-							if (getHaliteCount(quad) > haliteNeeded * 4) { // Arbitrary threshold greater than GameConstants.MAX_HALITE
+							if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) { // Arbitrary threshold greater than GameConstants.MAX_HALITE
 								MinePlan plan = getMinePlan(mineMap, quad, haliteNeeded);
 								int score = getScore(plan, ship, navigation);
 								//benchmark.peek("\t\tFound MinePlan: " + plan + " - " + turns + " - " + bestPlanTurns + " - %s");
@@ -201,10 +201,10 @@ public class GreedyStrategy implements Strategy {
 		DebugLog.log("\tNavigating: " + ship.getLocation() + " to " + bestVector);
 		moveQueue.move(ship, navigation.navigate(ship.getLocation(), bestVector));
 	}
-	public int getHaliteCount(Quad quad) {
+	public int getHaliteCount(Quad quad, Map<Vector, Integer> mineMap) {
 		int halite = 0;
 		for (Vector vector : quad) {
-			halite += gameMap.getHalite(vector);
+			halite += gameMap.getHalite(vector) - mineMap.getOrDefault(vector, 0);
 		}
 		return halite;
 	}
