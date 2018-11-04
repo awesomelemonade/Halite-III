@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -60,6 +61,13 @@ public class GreedyStrategy implements Strategy {
 						shipPriorities.add(candidate.getShipId());
 					}
 				}
+				// Remove dead ships
+				for (Iterator<Integer> iterator = shipPriorities.iterator(); iterator.hasNext();) {
+					int shipId = iterator.next();
+					if (!gameMap.getMyPlayer().getShips().containsKey(shipId)) {
+						iterator.remove();
+					}
+				}
 				// executes turn in order of shipPriority
 				DebugLog.log("Executing Ships: ");
 				for (int shipId : shipPriorities) {
@@ -71,35 +79,41 @@ public class GreedyStrategy implements Strategy {
 						continue;
 					}
 					int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite() - 50;
-					if (haliteNeeded <= 0) {
+					DebugLog.log("\tHalite Needed: " + haliteNeeded);
+					if (haliteNeeded <= 100) {
 						returningShips.add(ship.getShipId());
 					}
 					if (returningShips.contains(ship.getShipId())) {
-						moveQueue.move(ship, navigation.navigate(ship.getLocation(), gameMap.getMyPlayer().getShipyardLocation())); // TODO dropoffs
-						continue;
+						if (ship.getHalite() <= GameConstants.MAX_HALITE / 5) {
+							returningShips.remove(ship.getShipId());
+						} else {
+							DebugLog.log("Returning to shipyard");
+							moveQueue.move(ship, navigation.navigate(ship.getLocation(), gameMap.getMyPlayer().getShipyardLocation())); // TODO dropoffs
+							continue;
+						}
 					}
 					// BFS search for mine target
 					Deque<Vector> queue = new ArrayDeque<Vector>();
 					Set<Vector> visited = new HashSet<Vector>();
 					MinePlan bestPlan = null;
-					int bestPlanTurns = Integer.MAX_VALUE;
+					int bestPlanScore = Integer.MAX_VALUE;
 					queue.add(ship.getLocation());
 					visited.add(ship.getLocation());
 					while (!queue.isEmpty()) {
 						Vector vector = queue.poll();
-						if (bestPlanTurns < vector.getManhattanDistance(vector, gameMap)) {
-							break;
-						}
+						// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
 						for (int i = 0; i < 8; ++i) {
 							Quad quad = getQuad(vector, i);
 							if (getHaliteCount(quad) > haliteNeeded * 4) { // Arbitrary threshold greater than GameConstants.MAX_HALITE
 								MinePlan plan = getMinePlan(mineMap, quad, haliteNeeded);
-								// Half arbitrary heuristic - TODO: tune weighting
-								int turns = plan.getCount() + plan.getMineMap().keySet().size() + vector.getManhattanDistance(ship.getLocation(), gameMap);
-								benchmark.peek("\t\tFound MinePlan: " + plan + " - " + turns + " - " + bestPlanTurns + " - %s");
-								if (turns < bestPlanTurns) {
+								int score = getScore(plan, ship, navigation);
+								//benchmark.peek("\t\tFound MinePlan: " + plan + " - " + turns + " - " + bestPlanTurns + " - %s");
+								if (score < bestPlanScore) {
 									bestPlan = plan;
-									bestPlanTurns = turns;
+									bestPlanScore = score;
+								}
+								if (score == bestPlanScore && plan.getQuad().getSize().getX() < bestPlan.getQuad().getSize().getX()) {
+									bestPlan = plan;
 								}
 								break;
 							}
@@ -114,17 +128,20 @@ public class GreedyStrategy implements Strategy {
 					}
 					// Execute bestPlan
 					if (bestPlan != null) {
+						DebugLog.log("\tBest Plan: " + bestPlan.toString());
 						// Apply mineMap
 						for (Vector vector : bestPlan.getMineMap().keySet()) {
 							mineMap.put(vector, mineMap.getOrDefault(vector, 0) + bestPlan.getMineMap().get(vector));
 						}
 						handleMicro(moveQueue, ship, bestPlan);
+					} else {
+						DebugLog.log("\tNo Plan :(");
 					}
 				}
 				moveQueue.resolveCollisions(shipPriorities);
 				// Try to spawn a ship
 				if (moveQueue.isSafe(gameMap.getMyPlayer().getShipyardLocation())) {
-					if (gameMap.getMyPlayer().getShips().size() == 0 && 
+					if (gameMap.getMyPlayer().getShips().size() >= 0 && 
 							gameMap.getMyPlayer().getHalite() >= GameConstants.SHIP_COST && // TODO - consider cost of building dropoffs in the same turn
 							gameMap.getCurrentTurn() + 150 < GameConstants.MAX_TURNS) {
 						Networking.spawnShip();
@@ -136,8 +153,42 @@ public class GreedyStrategy implements Strategy {
 			}
 		}
 	}
+	public int getScore(MinePlan plan, Ship ship, Navigation navigation) { // Lower score is better
+		// Half arbitrary heuristic - TODO: tune weighting
+		List<Vector> vectors = new ArrayList<Vector>(plan.getMineMap().keySet());
+		int bestDistance = Integer.MAX_VALUE;
+		Vector bestVector = null;
+		for (Vector vector : vectors) {
+			int distance = ship.getLocation().getManhattanDistance(vector, gameMap);
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				bestVector = vector;
+			}
+		}
+		return plan.getCount() + navigation.getCost(ship.getLocation(), bestVector) + 
+				getDistance(ship.getLocation(), vectors);
+	}
+	public int getDistance(Vector start, List<Vector> vectors) {
+		int totalDistance = 0;
+		Vector currentVector = start;
+		while (!vectors.isEmpty()) {
+			Vector bestVector = null;
+			int bestDistance = Integer.MAX_VALUE;
+			for (Vector vector : vectors) {
+				int distance = currentVector.getManhattanDistance(vector, gameMap);
+				if (distance < bestDistance) {
+					bestDistance = distance;
+					bestVector = vector;
+				}
+			}
+			totalDistance += bestDistance;
+			vectors.remove(bestVector);
+			currentVector = bestVector;
+		}
+		return totalDistance;
+	}
 	public void handleMicro(MoveQueue moveQueue, Ship ship, MinePlan plan) {
-		// TODO: Travelling Salesman? - directionCurrently a greedy algorithm
+		// TODO: Traveling Salesman? - directionCurrently a greedy algorithm
 		Vector bestVector = null;
 		int bestDistance = Integer.MAX_VALUE;
 		for (Vector vector : plan.getMineMap().keySet()) {
@@ -147,6 +198,7 @@ public class GreedyStrategy implements Strategy {
 				bestVector = vector;
 			}
 		}
+		DebugLog.log("\tNavigating: " + ship.getLocation() + " to " + bestVector);
 		moveQueue.move(ship, navigation.navigate(ship.getLocation(), bestVector));
 	}
 	public int getHaliteCount(Quad quad) {
@@ -156,16 +208,22 @@ public class GreedyStrategy implements Strategy {
 		}
 		return halite;
 	}
+	public int getMineValue(Vector vector, Map<Vector, Integer> mineMap, Map<Vector, Integer> tempMineMap) {
+		int haliteLeft = gameMap.getHalite(vector) - mineMap.getOrDefault(vector, 0) - tempMineMap.getOrDefault(vector, 0);
+		int mine = (int) Math.ceil(((double) haliteLeft) / ((double) GameConstants.EXTRACT_RATIO));
+		if (tempMineMap.getOrDefault(vector, 0) != 0) {
+			return mine + haliteLeft / GameConstants.MOVE_COST_RATIO - (haliteLeft - mine) / GameConstants.MOVE_COST_RATIO;
+		} else {
+			return mine - (haliteLeft - mine) / GameConstants.MOVE_COST_RATIO;
+		}
+	}
 	public MinePlan getMinePlan(Map<Vector, Integer> mineMap, Quad quad, int threshold) {
 		Map<Vector, Integer> tempMineMap = new HashMap<Vector, Integer>();
 		PriorityQueue<Vector> queue = new PriorityQueue<Vector>(new Comparator<Vector>() {
 			@Override
 			public int compare(Vector a, Vector b) {
-				int mineA = (int) Math.ceil(((double) (gameMap.getHalite(a) - mineMap.getOrDefault(a, 0) - tempMineMap.getOrDefault(a, 0))) /
-						((double) GameConstants.EXTRACT_RATIO));
-				int mineB = (int) Math.ceil(((double) (gameMap.getHalite(b) - mineMap.getOrDefault(b, 0) - tempMineMap.getOrDefault(b, 0))) /
-						((double) GameConstants.EXTRACT_RATIO));
-				return Integer.compare(mineB, mineA);
+				// Reversed for descending order
+				return Integer.compare(getMineValue(b, mineMap, tempMineMap), getMineValue(a, mineMap, tempMineMap));
 			}
 		});
 		for (Vector vector : quad) {
@@ -213,7 +271,7 @@ public class GreedyStrategy implements Strategy {
 		}
 		@Override
 		public String toString() {
-			return String.format("MinePlan[quad=%s, count=%d]", quad.toString(), count);
+			return String.format("MinePlan[quad=%s, count=%d, map=%s]", quad.toString(), count, mineMap.toString());
 		}
 	}
 }
