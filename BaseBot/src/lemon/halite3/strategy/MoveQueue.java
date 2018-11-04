@@ -33,24 +33,41 @@ public class MoveQueue {
 		}
 	}
 	public void resolveCollisions(List<Integer> shipPriorities) {
+		Set<Integer> handled = new HashSet<Integer>();
 		// Handle ships forced to stand still
 		for (int shipId : shipPriorities) {
 			Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
 			if (ship.getHalite() < gameMap.getHalite(ship.getLocation()) / GameConstants.MOVE_COST_RATIO) {
 				unsafe.add(ship.getLocation());
 				map.put(shipId, Direction.STILL);
+				handled.add(shipId);
 			}
 		}
 		// TODO - Handle ship spawning + Creation of dropoffs
 		// TODO - Handle collisions between ships
 		for (int shipId : shipPriorities) {
+			if (handled.contains(shipId)) {
+				continue;
+			}
 			// Check if current square is unsafe
 			Vector current = gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap);
 			if (unsafe.contains(current)) {
 				map.put(shipId, Direction.STILL); // Still could actually still result in a collision.. TODO
+				current = gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap);
+				if (unsafe.contains(current)) {
+					// Randomly Selected - TODO: Make direction priorities
+					for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
+						map.put(shipId, direction);
+						current = gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap);
+						if (!unsafe.contains(current)) {
+							break;
+						}
+					}
+				}
 			}
 			// Marks square as unsafe
 			unsafe.add(gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap));
+			handled.add(shipId);
 		}
 	}
 	public boolean isSafe(Vector vector) {
