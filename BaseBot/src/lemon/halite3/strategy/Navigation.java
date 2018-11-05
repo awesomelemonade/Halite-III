@@ -7,8 +7,10 @@ import lemon.halite3.util.Vector;
 
 public class Navigation {
 	private GameMap gameMap;
+	private int[][] dp;
 	public Navigation(GameMap gameMap) {
 		this.gameMap = gameMap;
+		this.dp = new int[gameMap.getWidth()][gameMap.getHeight()];
 	}
 	public int getCost(Vector start, Vector end) {
 		if (start.equals(end)) {
@@ -16,7 +18,6 @@ public class Navigation {
 		}
 		Direction a = getDirection(start.getX(), end.getX(), gameMap.getWidth(), Direction.WEST, Direction.EAST);
 		Direction b = getDirection(start.getY(), end.getY(), gameMap.getHeight(), Direction.NORTH, Direction.SOUTH);
-		int[][] dp = new int[gameMap.getWidth()][gameMap.getHeight()];
 		for (int i = 0; i < dp.length; ++i) {
 			for (int j = 0; j < dp[0].length; ++j) {
 				dp[i][j] = Integer.MAX_VALUE;
@@ -31,7 +32,6 @@ public class Navigation {
 		}
 		Direction a = getDirection(start.getX(), end.getX(), gameMap.getWidth(), Direction.WEST, Direction.EAST);
 		Direction b = getDirection(start.getY(), end.getY(), gameMap.getHeight(), Direction.NORTH, Direction.SOUTH);
-		int[][] dp = new int[gameMap.getWidth()][gameMap.getHeight()];
 		for (int i = 0; i < dp.length; ++i) {
 			for (int j = 0; j < dp[0].length; ++j) {
 				dp[i][j] = Integer.MAX_VALUE;
