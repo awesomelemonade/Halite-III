@@ -26,6 +26,7 @@ public class GameMap {
 		width = Integer.parseInt(mapSizeTokenizer.nextToken());
 		height = Integer.parseInt(mapSizeTokenizer.nextToken());
 		this.halite = new int[width][height];
+		this.dropoffs = new Dropoff[width][height];
 		this.ships = new Ship[width][height];
 		this.lastUpdated = new int[width][height];
 		this.currentTurn = -1;

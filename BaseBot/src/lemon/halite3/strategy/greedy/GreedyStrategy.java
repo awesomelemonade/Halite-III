@@ -85,7 +85,7 @@ public class GreedyStrategy implements Strategy {
 						}
 						int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite() - 50;
 						DebugLog.log("\tHalite Needed: " + haliteNeeded);
-						if (haliteNeeded <= 100) {
+						if (haliteNeeded <= 0) {
 							returningShips.add(ship.getShipId());
 						}
 						if (returningShips.contains(ship.getShipId())) {
