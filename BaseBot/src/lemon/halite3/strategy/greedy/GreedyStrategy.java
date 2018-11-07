@@ -179,6 +179,7 @@ public class GreedyStrategy implements Strategy {
 											minePlanDeletions.get(v).remove(vector);
 										}
 									}
+									minePlans.remove(vector);
 								}
 								minePlanDeletions.get(center).clear();
 							}
