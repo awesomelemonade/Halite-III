@@ -54,8 +54,9 @@ public class Quad implements Iterable<Vector> {
 			if (count >= size.getX() * size.getY()) {
 				throw new NoSuchElementException();
 			}
+			Vector ret = location.add(count % size.getX(), count / size.getX(), modX, modY);
 			count++;
-			return location.add(count % size.getX(), count / size.getX(), modX, modY);
+			return ret;
 		}
 	}
 }
