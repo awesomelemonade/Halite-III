@@ -70,8 +70,6 @@ public class GreedyStrategy implements Strategy {
 				long totalTime2 = 0;
 				long totalTime3 = 0;
 				long totalTime4 = 0;
-				totalTime5 = 0;
-				totalTime6 = 0;
 				// executes turn in order of shipPriority
 				DebugLog.log("Executing Ships: ");
 				try (Benchmark b3 = new Benchmark("Executed Ships: %ss")) {
@@ -162,6 +160,9 @@ public class GreedyStrategy implements Strategy {
 							}
 						}
 						totalTime += System.currentTimeMillis() - time;
+						/*if (shipId == shipPriorities.get(0)) {
+							StateSaver.save("gamestates/lol" + gameMap.getMyPlayerId() + "-" + gameMap.getCurrentTurn() + "-" + shipId, gameMap, mineMap, minePlans);
+						}*/
 						// Execute bestPlan
 						if (bestPlan != null) {
 							DebugLog.log("\tBest Plan: " + bestPlan.toString());
@@ -193,8 +194,6 @@ public class GreedyStrategy implements Strategy {
 				DebugLog.log("Total Time2: " + totalTime2);
 				DebugLog.log("Total Time3: " + (totalTime3 / 1000000.0));
 				DebugLog.log("Total Time4: " + (totalTime4 / 1000000.0));
-				DebugLog.log("Total Time5: " + (totalTime5 / 1000000.0));
-				DebugLog.log("Total Time6: " + (totalTime6 / 1000000.0));
 				moveQueue.resolveCollisions(shipPriorities);
 				// Try to spawn a ship
 				if (moveQueue.isSafe(gameMap.getMyPlayer().getShipyardLocation())) {
@@ -210,35 +209,13 @@ public class GreedyStrategy implements Strategy {
 			}
 		}
 	}
-	long totalTime5 = 0;
-	long totalTime6 = 0;
 	public int getScore(MinePlan plan, Ship ship) { // Lower score is better
 		// Half arbitrary heuristic - TODO: tune weighting
 		List<Vector> vectors = new ArrayList<Vector>(plan.getMineMap().keySet());
-		int bestDistance = Integer.MAX_VALUE;
-		Vector bestVector = null;
-		for (Vector vector : vectors) {
-			int distance = ship.getLocation().getManhattanDistance(vector, gameMap);
-			if (distance < bestDistance) {
-				bestDistance = distance;
-				bestVector = vector;
-			}
-		}
-		
-		long time = System.nanoTime();
-		//int b = navigation.getCost(ship.getLocation(), bestVector);
-		int b = ship.getLocation().getManhattanDistance(bestVector, gameMap);
-		totalTime5 += System.nanoTime() - time;
-		time = System.nanoTime();
-		int c = getDistance(ship.getLocation(), vectors);
-		totalTime6 += System.nanoTime() - time;
-		return plan.getCount() + b + c;
-		
-		/*
-		return plan.getCount() + navigation.getCost(ship.getLocation(), bestVector) + 
-				getDistance(ship.getLocation(), vectors);*/
+		int c = getDistance(ship.getLocation(), vectors, gameMap.getMyPlayer().getShipyardLocation());
+		return plan.getCount() + c;
 	}
-	public int getDistance(Vector start, List<Vector> vectors) {
+	public int getDistance(Vector start, List<Vector> vectors, Vector end) {
 		int totalDistance = 0;
 		Vector currentVector = start;
 		while (!vectors.isEmpty()) {
@@ -255,7 +232,7 @@ public class GreedyStrategy implements Strategy {
 			vectors.remove(bestVector);
 			currentVector = bestVector;
 		}
-		return totalDistance;
+		return totalDistance + currentVector.getManhattanDistance(end, gameMap);
 	}
 	public void handleMicro(MoveQueue moveQueue, Ship ship, MinePlan plan) {
 		// TODO: Traveling Salesman? - directionCurrently a greedy algorithm
