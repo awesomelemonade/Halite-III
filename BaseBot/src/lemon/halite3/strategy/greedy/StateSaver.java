@@ -11,9 +11,11 @@ import lemon.halite3.util.GameMap;
 import lemon.halite3.util.Vector;
 
 public class StateSaver {
-	public static void save(String filename, GameMap gameMap, Map<Vector, Integer> mineMap, Map<Vector, MinePlan> minePlans) {
+	public static void save(String filename, Vector shipLocation, Vector bestPlan, GameMap gameMap, Map<Vector, Integer> mineMap, Map<Vector, MinePlan> minePlans, Map<Vector, Integer> scores) {
 		try {
 			PrintWriter writer = new PrintWriter(new FileWriter(filename));
+			writer.println(shipLocation.getX() + " " + shipLocation.getY());
+			writer.println(bestPlan.getX() + " " + bestPlan.getY());
 			writer.println(gameMap.getWidth() + " " + gameMap.getHeight());
 			for (int i = 0; i < gameMap.getWidth(); ++i) {
 				for (int j = 0; j < gameMap.getHeight(); ++j) {
@@ -31,6 +33,7 @@ public class StateSaver {
 					for (Entry<Vector, Integer> entry : plan.getMineMap().entrySet()) {
 						writer.printf("%d %d %d ", entry.getKey().getX(), entry.getKey().getY(), entry.getValue());
 					}
+					writer.print(scores.get(Vector.getInstance(i, j)) + " ");
 					writer.println(plan.getCount());
 				}
 			}

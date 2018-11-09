@@ -160,9 +160,19 @@ public class GreedyStrategy implements Strategy {
 							}
 						}
 						totalTime += System.currentTimeMillis() - time;
-						/*if (shipId == shipPriorities.get(0)) {
-							StateSaver.save("gamestates/lol" + gameMap.getMyPlayerId() + "-" + gameMap.getCurrentTurn() + "-" + shipId, gameMap, mineMap, minePlans);
-						}*/
+						if (shipId == shipPriorities.get(0)) {
+							Map<Vector, Integer> scores = new HashMap<Vector, Integer>();
+							for (int i = 0; i < gameMap.getWidth(); ++i) {
+								for (int j = 0; j < gameMap.getHeight(); ++j) {
+									scores.put(Vector.getInstance(i, j), 
+											getScore(minePlans.get(Vector.getInstance(i, j)),
+													gameMap.getMyPlayer().getShips().get(shipId)));
+								}
+							}
+							String filename = String.format("gamestates/lol%d-%03d-%03d", gameMap.getMyPlayerId(), gameMap.getCurrentTurn(), shipId);
+							StateSaver.save(filename, gameMap.getMyPlayer().getShips().get(shipId).getLocation(), 
+									bestPlan.getQuad().getCenter(), gameMap, mineMap, minePlans, scores);
+						}
 						// Execute bestPlan
 						if (bestPlan != null) {
 							DebugLog.log("\tBest Plan: " + bestPlan.toString());
