@@ -88,6 +88,7 @@ public class Visualizer {
 			}
 			// Mine Plans
 			MinePlan[][] minePlans = new MinePlan[width][height];
+			Vector[][][] paths = new Vector[width][height][];
 			int[][] scores = new int[width][height];
 			for (int i = 0; i < halite.length; ++i) {
 				for (int j = 0; j < halite[0].length; ++j) {
@@ -98,13 +99,19 @@ public class Visualizer {
 					for (int k = 0 ; k < mapSize; ++k) {
 						mineMap.put(new Vector(tokenizer), Integer.parseInt(tokenizer.nextToken()));
 					}
+					int pathSize = Integer.parseInt(tokenizer.nextToken());
+					Vector[] path = new Vector[pathSize];
+					for (int k = 0; k < pathSize; ++k) {
+						path[k] = new Vector(tokenizer);
+					}
+					paths[i][j] = path;
 					scores[i][j] = Integer.parseInt(tokenizer.nextToken());
 					int count = Integer.parseInt(tokenizer.nextToken());
 					minePlans[i][j] = new MinePlan(quad, mineMap, count);
 				}
 			}
 			reader.close();
-			renderer.setInfo(shipLocation, bestPlan, halite, minePlans, scores);
+			renderer.setInfo(shipLocation, bestPlan, halite, minePlans, scores, paths);
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}

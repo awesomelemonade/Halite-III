@@ -3,6 +3,7 @@ package lemon.halite3.strategy.greedy;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -11,7 +12,8 @@ import lemon.halite3.util.GameMap;
 import lemon.halite3.util.Vector;
 
 public class StateSaver {
-	public static void save(String filename, Vector shipLocation, Vector bestPlan, GameMap gameMap, Map<Vector, Integer> mineMap, Map<Vector, MinePlan> minePlans, Map<Vector, Integer> scores) {
+	public static void save(String filename, Vector shipLocation, Vector bestPlan, GameMap gameMap, Map<Vector, Integer> mineMap,
+			Map<Vector, MinePlan> minePlans, Map<Vector, Integer> scores, Map<Vector, List<Vector>> paths) {
 		try {
 			PrintWriter writer = new PrintWriter(new FileWriter(filename));
 			writer.println(shipLocation.getX() + " " + shipLocation.getY());
@@ -32,6 +34,10 @@ public class StateSaver {
 					writer.print(plan.getMineMap().size() + " ");
 					for (Entry<Vector, Integer> entry : plan.getMineMap().entrySet()) {
 						writer.printf("%d %d %d ", entry.getKey().getX(), entry.getKey().getY(), entry.getValue());
+					}
+					writer.print(paths.get(Vector.getInstance(i, j)).size() + " ");
+					for (Vector vector : paths.get(Vector.getInstance(i, j))) {
+						writer.printf("%d %d ", vector.getX(), vector.getY());
 					}
 					writer.print(scores.get(Vector.getInstance(i, j)) + " ");
 					writer.println(plan.getCount());

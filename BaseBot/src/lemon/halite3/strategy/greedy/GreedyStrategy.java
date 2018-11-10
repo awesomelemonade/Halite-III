@@ -2,6 +2,7 @@ package lemon.halite3.strategy.greedy;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -81,9 +82,9 @@ public class GreedyStrategy implements Strategy {
 							moveQueue.move(ship, Direction.STILL);
 							continue;
 						}
-						int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite() - 50;
+						int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite();
 						DebugLog.log("\tHalite Needed: " + haliteNeeded);
-						if (haliteNeeded <= 0) {
+						if (haliteNeeded <= 100) {
 							returningShips.add(ship.getShipId());
 						}
 						if (returningShips.contains(ship.getShipId())) {
@@ -162,16 +163,18 @@ public class GreedyStrategy implements Strategy {
 						totalTime += System.currentTimeMillis() - time;
 						if (shipId == shipPriorities.get(0)) {
 							Map<Vector, Integer> scores = new HashMap<Vector, Integer>();
+							Map<Vector, List<Vector>> paths = new HashMap<Vector, List<Vector>>();
 							for (int i = 0; i < gameMap.getWidth(); ++i) {
 								for (int j = 0; j < gameMap.getHeight(); ++j) {
 									scores.put(Vector.getInstance(i, j), 
 											getScore(minePlans.get(Vector.getInstance(i, j)),
 													gameMap.getMyPlayer().getShips().get(shipId)));
+									paths.put(Vector.getInstance(i, j), path);
 								}
 							}
 							String filename = String.format("gamestates/lol%d-%03d-%03d", gameMap.getMyPlayerId(), gameMap.getCurrentTurn(), shipId);
 							StateSaver.save(filename, gameMap.getMyPlayer().getShips().get(shipId).getLocation(), 
-									bestPlan.getQuad().getCenter(), gameMap, mineMap, minePlans, scores);
+									bestPlan.getQuad().getCenter(), gameMap, mineMap, minePlans, scores, paths);
 						}
 						// Execute bestPlan
 						if (bestPlan != null) {
@@ -222,12 +225,16 @@ public class GreedyStrategy implements Strategy {
 	public int getScore(MinePlan plan, Ship ship) { // Lower score is better
 		// Half arbitrary heuristic - TODO: tune weighting
 		List<Vector> vectors = new ArrayList<Vector>(plan.getMineMap().keySet());
+		Collections.sort(vectors);
 		int c = getDistance(ship.getLocation(), vectors, gameMap.getMyPlayer().getShipyardLocation());
 		return plan.getCount() + c;
 	}
+	List<Vector> path;
 	public int getDistance(Vector start, List<Vector> vectors, Vector end) {
+		List<Vector> path = new ArrayList<Vector>();
 		int totalDistance = 0;
 		Vector currentVector = start;
+		path.add(currentVector);
 		while (!vectors.isEmpty()) {
 			Vector bestVector = null;
 			int bestDistance = Integer.MAX_VALUE;
@@ -241,7 +248,10 @@ public class GreedyStrategy implements Strategy {
 			totalDistance += bestDistance;
 			vectors.remove(bestVector);
 			currentVector = bestVector;
+			path.add(currentVector);
 		}
+		path.add(end);
+		this.path = path;
 		return totalDistance + currentVector.getManhattanDistance(end, gameMap);
 	}
 	public void handleMicro(MoveQueue moveQueue, Ship ship, MinePlan plan) {

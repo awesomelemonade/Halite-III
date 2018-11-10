@@ -16,22 +16,25 @@ public class Renderer extends JPanel {
 	private int[][] halite;
 	private MinePlan[][] minePlans;
 	private int[][] scores;
+	private Vector[][][] paths;
 	public Renderer() {
-		this(null, null, null, null, null);
+		this(null, null, null, null, null, null);
 	}
-	public Renderer(Vector shipLocation, Vector bestPlan, int[][] halite, MinePlan[][] minePlans, int[][] scores) {
+	public Renderer(Vector shipLocation, Vector bestPlan, int[][] halite, MinePlan[][] minePlans, int[][] scores, Vector[][][] paths) {
 		this.halite = halite;
 		this.minePlans = minePlans;
 		this.scores = scores;
 		this.shipLocation = shipLocation;
 		this.bestPlan = bestPlan;
+		this.paths = paths;
 	}
-	public void setInfo(Vector shipLocation, Vector bestPlan, int[][] halite, MinePlan[][] minePlans, int[][] scores) {
+	public void setInfo(Vector shipLocation, Vector bestPlan, int[][] halite, MinePlan[][] minePlans, int[][] scores, Vector[][][] paths) {
 		this.halite = halite;
 		this.minePlans = minePlans;
 		this.scores = scores;
 		this.shipLocation = shipLocation;
 		this.bestPlan = bestPlan;
+		this.paths = paths;
 	}
 	@Override
 	public void paintComponent(Graphics g) {
@@ -43,8 +46,11 @@ public class Renderer extends JPanel {
 		int mouseX = (int) (MouseInfo.getPointerInfo().getLocation().getX() - this.getLocationOnScreen().getX());
 		int mouseY = (int) (MouseInfo.getPointerInfo().getLocation().getY() - this.getLocationOnScreen().getY());
 		try {
-			renderMinePlan(g, minePlans[(int) (mouseX / tileWidth)][(int) (mouseY / tileHeight)]);
-			System.out.println("Rendering: " + (int) (mouseX / tileWidth) + " - " + (int) (mouseY / tileHeight));
+			int indexX = (int) (mouseX / tileWidth);
+			int indexY = (int) (mouseY / tileHeight);
+			renderMinePlan(g, minePlans[indexX][indexY]);
+			renderPath(g, paths[indexX][indexY]);
+			System.out.println("Rendering: " + indexX + " - " + indexY);
 		} catch (Exception ex) {
 			System.out.println((int) (mouseX / tileWidth) + " - " + (int) (mouseY / tileHeight));
 		}
@@ -57,6 +63,7 @@ public class Renderer extends JPanel {
 		g.setColor(Color.ORANGE);
 		g.drawRect(bestPlan.getX() * tileWidth, bestPlan.getY() * tileHeight, tileWidth, tileHeight);
 		renderMinePlan(g, minePlans[bestPlan.getX()][bestPlan.getY()]);
+		renderPath(g, paths[bestPlan.getX()][bestPlan.getY()]);
 		
 		this.repaint();
 	}
@@ -67,6 +74,8 @@ public class Renderer extends JPanel {
 			for (int j = 0; j < halite[0].length; ++j) {
 				g.setColor(new Color(0, 0, 255, Math.min(255, (int)(255 * (halite[i][j] / 1000.0)))));
 				g.fillRect(i * tileWidth, j * tileHeight, tileWidth, tileHeight);
+				g.setColor(Color.GRAY);
+				g.drawString(halite[i][j] + "", i * tileWidth + 30, j * tileHeight + tileHeight);
 			}
 		}
 	}
@@ -92,6 +101,15 @@ public class Renderer extends JPanel {
 				g.setColor(Color.BLACK);
 				g.drawString(scores[i][j] + "", i * tileWidth, j * tileHeight + tileHeight);
 			}
+		}
+	}
+	public void renderPath(Graphics g, Vector[] path) {
+		int tileWidth = this.getWidth() / halite.length;
+		int tileHeight = this.getHeight() / halite[0].length;
+		g.setColor(Color.PINK);
+		for (int i = 0; i < path.length - 1; ++i) {
+			g.drawLine(path[i].getX() * tileWidth + tileWidth / 2, path[i].getY() * tileHeight + tileHeight / 2,
+					path[i + 1].getX() * tileWidth + tileWidth / 2, path[i + 1].getY() * tileHeight + tileHeight / 2);
 		}
 	}
 }
