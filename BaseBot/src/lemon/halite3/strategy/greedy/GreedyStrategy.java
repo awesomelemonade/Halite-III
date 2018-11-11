@@ -47,8 +47,6 @@ public class GreedyStrategy implements Strategy {
 						" ***********************************************");
 				MoveQueue moveQueue = new MoveQueue(gameMap);
 				Map<Vector, Integer> mineMap = new HashMap<Vector, Integer>();
-				Map<Vector, MinePlan> minePlans = new HashMap<Vector, MinePlan>();
-				Map<Vector, Set<Vector>> minePlanDeletions = new HashMap<Vector, Set<Vector>>();
 				// updates shipPriority
 				DebugLog.log("Updating Ship Priorities...");
 				try (Benchmark b2 = new Benchmark("Updated Ship Priorities: %ss")) {
@@ -82,9 +80,9 @@ public class GreedyStrategy implements Strategy {
 							moveQueue.move(ship, Direction.STILL);
 							continue;
 						}
-						int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite();
+						int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite() - 50;
 						DebugLog.log("\tHalite Needed: " + haliteNeeded);
-						if (haliteNeeded <= 100) {
+						if (haliteNeeded <= 0) {
 							returningShips.add(ship.getShipId());
 						}
 						if (returningShips.contains(ship.getShipId())) {
@@ -108,47 +106,24 @@ public class GreedyStrategy implements Strategy {
 							Vector vector = queue.poll();
 							// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
 							long time2 = System.currentTimeMillis();
-							
-							if (minePlans.containsKey(vector)) {
-								MinePlan plan = minePlans.get(vector);
-								int score = getScore(plan, ship);
-								if (score < bestPlanScore) {
-									bestPlan = plan;
-									bestPlanScore = score;
-								}
-								if (score == bestPlanScore && plan.getQuad().getSize().getX() < bestPlan.getQuad().getSize().getX()) {
-									bestPlan = plan;
-								}
-							} else {
-								for (int i = 0; i < 8; ++i) {
-									Quad quad = getQuad(vector, i);
-									if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) { // Arbitrary threshold greater than GameConstants.MAX_HALITE
-										long time3 = System.nanoTime();
-										MinePlan plan = getMinePlan(mineMap, quad, haliteNeeded);
-										
-										// Put MinePlan in HashMap
-										minePlans.put(vector, plan);
-										for (Vector v : quad) {
-											if (!minePlanDeletions.containsKey(v)) {
-												minePlanDeletions.put(v, new HashSet<Vector>());
-											}
-											minePlanDeletions.get(v).add(vector);
-										}
-										
-										totalTime3 += System.nanoTime() - time3;
-										time3 = System.nanoTime();
-										int score = getScore(plan, ship);
-										totalTime4 += System.nanoTime() - time3;
-										//benchmark.peek("\t\tFound MinePlan: " + plan + " - " + turns + " - " + bestPlanTurns + " - %s");
-										if (score < bestPlanScore) {
-											bestPlan = plan;
-											bestPlanScore = score;
-										}
-										if (score == bestPlanScore && plan.getQuad().getSize().getX() < bestPlan.getQuad().getSize().getX()) {
-											bestPlan = plan;
-										}
-										break;
+							for (int i = 0; i < 8; ++i) {
+								Quad quad = getQuad(vector, i);
+								if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) { // Arbitrary threshold greater than GameConstants.MAX_HALITE
+									long time3 = System.nanoTime();
+									MinePlan plan = getMinePlan(mineMap, quad, haliteNeeded);
+									totalTime3 += System.nanoTime() - time3;
+									time3 = System.nanoTime();
+									int score = getScore(plan, ship);
+									totalTime4 += System.nanoTime() - time3;
+									//benchmark.peek("\t\tFound MinePlan: " + plan + " - " + turns + " - " + bestPlanTurns + " - %s");
+									if (score < bestPlanScore) {
+										bestPlan = plan;
+										bestPlanScore = score;
 									}
+									if (score == bestPlanScore && plan.getQuad().getSize().getX() < bestPlan.getQuad().getSize().getX()) {
+										bestPlan = plan;
+									}
+									break;
 								}
 							}
 							totalTime2 += System.currentTimeMillis() - time2;
@@ -161,7 +136,7 @@ public class GreedyStrategy implements Strategy {
 							}
 						}
 						totalTime += System.currentTimeMillis() - time;
-						if (shipId == shipPriorities.get(0)) {
+						/*if (shipId == shipPriorities.get(0)) {
 							Map<Vector, Integer> scores = new HashMap<Vector, Integer>();
 							Map<Vector, List<Vector>> paths = new HashMap<Vector, List<Vector>>();
 							for (int i = 0; i < gameMap.getWidth(); ++i) {
@@ -175,27 +150,13 @@ public class GreedyStrategy implements Strategy {
 							String filename = String.format("gamestates/lol%d-%03d-%03d", gameMap.getMyPlayerId(), gameMap.getCurrentTurn(), shipId);
 							StateSaver.save(filename, gameMap.getMyPlayer().getShips().get(shipId).getLocation(), 
 									bestPlan.getQuad().getCenter(), gameMap, mineMap, minePlans, scores, paths);
-						}
+						}*/
 						// Execute bestPlan
 						if (bestPlan != null) {
 							DebugLog.log("\tBest Plan: " + bestPlan.toString());
 							// Apply mineMap
 							for (Vector vector : bestPlan.getMineMap().keySet()) {
 								mineMap.put(vector, mineMap.getOrDefault(vector, 0) + bestPlan.getMineMap().get(vector));
-							}
-							// Remove affected MinePlans in mineMap
-							Vector center = bestPlan.getQuad().getCenter();
-							if (minePlanDeletions.containsKey(center)) {
-								for (Vector vector : minePlanDeletions.get(center)) {
-									MinePlan planToDelete = minePlans.get(vector);
-									for (Vector v : planToDelete.getQuad()) {
-										if (!v.equals(center)) {
-											minePlanDeletions.get(v).remove(vector);
-										}
-									}
-									minePlans.remove(vector);
-								}
-								minePlanDeletions.get(center).clear();
 							}
 							handleMicro(moveQueue, ship, bestPlan);
 						} else {
