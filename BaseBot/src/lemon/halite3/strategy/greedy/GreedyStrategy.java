@@ -268,7 +268,7 @@ public class GreedyStrategy implements Strategy {
 			if (mine == 0) {
 				return null;
 			}
-			halite += mine;
+			halite += mineValues.get(vector);
 			count++;
 			tempMineMap.put(vector, tempMineMap.getOrDefault(vector, 0) + mine);
 			if (halite >= threshold) {
