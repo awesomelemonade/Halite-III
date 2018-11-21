@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 
+import lemon.halite3.util.DebugLog;
 import lemon.halite3.util.Direction;
 import lemon.halite3.util.GameConstants;
 import lemon.halite3.util.GameMap;
@@ -17,76 +18,92 @@ import lemon.halite3.util.Vector;
 public class Heuristics {
 	private static GameMap gameMap;
 	private static int[][][][] dp;
+	public static void init(GameMap gameMap, int[][][][] dp) {
+		Heuristics.gameMap = gameMap;
+		Heuristics.dp = dp;
+	}
 	public static int execute(Vector start, int halite, Set<Vector> vectors, Vector end) {
+		List<Vector> totalPath = new ArrayList<Vector>();
 		Vector current = start;
-		int currentHalite = halite;
 		while (!vectors.isEmpty()) {
 			int bestDistance = Integer.MAX_VALUE;
 			Vector bestVector = null;
 			for (Vector vector : vectors) {
-				
-			}
-			Vector best = vectors.stream().min((a, b) -> Integer.compare(current.getManhattanDistance(a, gameMap),
-					current.getManhattanDistance(bestVector, gameMap))).get();
-		}
-		
-		return 999999;
-	}
-	// Needs to return <AmountOfHalite, AmountOfTurnsItTook>
-	// Theoretically we COULD put traversed vectors in the priority queue to make it even more optimal
-	public static int execute(Vector start, int halite, Vector end) {
-		if (dp[start.getX()][start.getY()][end.getX()][end.getY()] <= halite) {
-			
-		} else {
-			int[][] dp = Heuristics.dp[start.getX()][start.getY()];
-			List<Vector> path = getPath(start, end);
-			PriorityQueue<Vector> queue = new PriorityQueue<Vector>(new Comparator<Vector>() {
-				@Override
-				public int compare(Vector a, Vector b) {
-					return 0;
-				}
-			});
-			Vector current = start;
-			int index = 0;
-			Map<Vector, Integer> mineMap = new HashMap<Vector, Integer>();
-			Map<Vector, Integer> mineValues = new HashMap<Vector, Integer>();
-			for (Vector vector : path) {
-				if (dp[vector.getX()][vector.getY()] <= halite) {
-					queue.add(vector);
-				} else {
-					while (dp[vector.getX()][vector.getY()] > halite) {
-						Vector v = queue.poll();
-						halite += mineValues.get(v);
-						// Update Mine Value
-						// Update Mine Map
-						queue.add(v);
-					}
-					// Eventually...
-					// Add Mine Value
-					queue.add(vector);
+				int distance = current.getManhattanDistance(vector, gameMap);
+				if (distance < bestDistance) {
+					bestDistance = distance;
+					bestVector = vector;
 				}
 			}
+			totalPath.addAll(getPath(current, bestVector));
+			vectors.remove(bestVector);
+			current = bestVector;
 		}
+		totalPath.addAll(getPath(current, end));
+		DebugLog.log("TotalPath: " + totalPath.size());
+		return heuristic(totalPath, halite)	;
 	}
 	public static int heuristic(List<Vector> path, int halite) {
+		Map<Vector, Integer> totalCounts = getCounts(path);
+		Map<Vector, Integer> mineValues = new HashMap<Vector, Integer>();
+		Map<Vector, Integer> mineMap = new HashMap<Vector, Integer>();
+		Map<Vector, Integer> counts = new HashMap<Vector, Integer>();
+		for (Vector vector : path) {
+			mineValues.put(vector, getMineValue(vector, mineMap, totalCounts));
+		}
 		PriorityQueue<Vector> queue = new PriorityQueue<Vector>(new Comparator<Vector>() {
 			@Override
 			public int compare(Vector a, Vector b) {
-				return 0;
+				return Integer.compare(mineValues.get(b), mineValues.get(a)); // Descending
 			}
 		});
 		for (Vector vector : path) {
-			if (/* we cannot pass normally w/o mining*/) {
+			int costOfMovingOutOfThisSquare = gameMap.getHalite(vector) / GameConstants.MOVE_COST_RATIO;
+			if (costOfMovingOutOfThisSquare > halite) { // we cannot pass normally w/o mining
 				// mine some halite
+				Vector mineLocation = queue.poll();
+				int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0);
+				int mined = getMined(haliteLeft);
+				halite += mined + counts.get(mineLocation) * 
+						(haliteLeft / GameConstants.MOVE_COST_RATIO - (haliteLeft - mined) / GameConstants.MOVE_COST_RATIO);
+				mineMap.put(mineLocation, mineMap.getOrDefault(mineLocation, 0) + mined);
+				// Put mineLocation back to queue
+				mineValues.put(mineLocation, getMineValue(mineLocation, mineMap, totalCounts));
+				queue.add(mineLocation);
 			}
+			counts.put(vector, counts.getOrDefault(vector, 0) + 1);
 			queue.add(vector); // Make vector available for mining
-			halite -= /* */;// Subtract move cost from halite
+			halite -= (gameMap.getHalite(vector) - mineMap.getOrDefault(vector, 0)) / GameConstants.MOVE_COST_RATIO; // Subtract move cost from halite
 		}
 		// Pop out desired amount
 		while (halite < GameConstants.MAX_HALITE - 50) {
-			Vector toMine = queue.poll();
+			Vector mineLocation = queue.poll();
+			int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0);
+			int mined = getMined(haliteLeft);
+			halite += mined + counts.get(mineLocation) * 
+					(haliteLeft / GameConstants.MOVE_COST_RATIO - (haliteLeft - mined) / GameConstants.MOVE_COST_RATIO);
+			mineMap.put(mineLocation, mineMap.getOrDefault(mineLocation, 0) + mined);
+			// Put mineLocation back to queue
+			mineValues.put(mineLocation, getMineValue(mineLocation, mineMap, totalCounts));
+			queue.add(mineLocation);
 		}
 		// Return # of turns and where to mine/what to do next
+		return path.size();
+	}
+	public static int getMined(int halite) {
+		return (halite + GameConstants.EXTRACT_RATIO - 1) / GameConstants.EXTRACT_RATIO; // Rounds up without Math.ceil()
+	}
+	public static int getMineValue(Vector vector, Map<Vector, Integer> mineMap, Map<Vector, Integer> totalCounts) {
+		int haliteLeft = gameMap.getHalite(vector) - mineMap.getOrDefault(vector, 0);
+		int mine = getMined(haliteLeft);
+		return mine + totalCounts.get(vector) * (haliteLeft / GameConstants.MOVE_COST_RATIO - (haliteLeft - mine) / GameConstants.MOVE_COST_RATIO);
+	}
+	public static Map<Vector, Integer> getCounts(List<Vector> path) {
+		Map<Vector, Integer> map = new HashMap<Vector, Integer>();
+		for (Vector vector : path) {
+			map.put(vector, map.getOrDefault(vector, 0) + 1);
+		}
+		return map;
 	}
 	public static List<Vector> getPath(Vector start, Vector end) {
 		int[][] dp = Heuristics.dp[start.getX()][start.getY()];
