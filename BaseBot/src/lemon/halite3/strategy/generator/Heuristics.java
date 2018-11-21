@@ -1,7 +1,6 @@
 package lemon.halite3.strategy.generator;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -9,6 +8,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 
+import lemon.halite3.util.Benchmark;
 import lemon.halite3.util.DebugLog;
 import lemon.halite3.util.Direction;
 import lemon.halite3.util.GameConstants;
@@ -35,13 +35,16 @@ public class Heuristics {
 					bestVector = vector;
 				}
 			}
-			totalPath.addAll(getPath(current, bestVector));
+			addPath(current, bestVector, totalPath);
 			vectors.remove(bestVector);
 			current = bestVector;
 		}
-		totalPath.addAll(getPath(current, end));
+		addPath(current, end, totalPath);
+		totalPath.add(end);
 		DebugLog.log("TotalPath: " + totalPath.size());
-		return heuristic(totalPath, halite)	;
+		try (Benchmark benchmark = new Benchmark("Algo: %ss")) {
+			return heuristic(totalPath, halite)	;
+		}
 	}
 	public static int heuristic(List<Vector> path, int halite) {
 		Map<Vector, Integer> totalCounts = getCounts(path);
@@ -105,15 +108,24 @@ public class Heuristics {
 		}
 		return map;
 	}
-	public static List<Vector> getPath(Vector start, Vector end) {
-		int[][] dp = Heuristics.dp[start.getX()][start.getY()];
-		List<Vector> path = new ArrayList<Vector>();
-		Vector current = end;
-		while (!current.equals(start)) {
+	public static void addPath(Vector start, Vector end, List<Vector> path) {
+		int[][] dp = Heuristics.dp[end.getX()][end.getY()];
+		Direction[] validDirections = null;
+		if (start.getX() == end.getX()) {
+			validDirections = new Direction[] {getDirection(start.getY(), end.getY(), gameMap.getHeight(), Direction.NORTH, Direction.SOUTH)};
+		} else if (start.getY() == end.getY()) {
+			validDirections = new Direction[] {getDirection(start.getX(), end.getX(), gameMap.getWidth(), Direction.WEST, Direction.EAST)};
+		} else {
+			Direction a = getDirection(start.getX(), end.getX(), gameMap.getWidth(), Direction.WEST, Direction.EAST);
+			Direction b = getDirection(start.getY(), end.getY(), gameMap.getHeight(), Direction.NORTH, Direction.SOUTH);
+			validDirections = new Direction[] {a, b};
+		}
+		Vector current = start;
+		while (!current.equals(end)) {
 			path.add(current);
 			Vector minVector = null;
 			int minValue = Integer.MAX_VALUE;
-			for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
+			for (Direction direction : validDirections) {
 				Vector v = current.add(direction, gameMap);
 				if (dp[v.getX()][v.getY()] < minValue) {
 					minValue = dp[v.getX()][v.getY()];
@@ -122,8 +134,8 @@ public class Heuristics {
 			}
 			current = minVector;
 		}
-		path.add(current);
-		Collections.reverse(path);
-		return path;
+	}
+	public static Direction getDirection(int start, int end, int mod, Direction neg, Direction pos) {
+		return end > start ? (end - start < mod - end + start ? pos : neg) : (start - end < mod - start + end ? neg : pos);
 	}
 }
