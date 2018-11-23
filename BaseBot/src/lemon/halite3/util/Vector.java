@@ -52,17 +52,29 @@ public class Vector implements Comparable<Vector> {
 	public int getY() {
 		return y;
 	}
+	public boolean isAdjacent(Vector vector, GameMap gameMap) {
+		return getManhattanDistance(vector, gameMap) == 1;
+	}
 	public int getManhattanDistance(Vector vector, GameMap gameMap) {
 		return getManhattanDistance(vector, gameMap.getWidth(), gameMap.getHeight());
 	}
 	public int getManhattanDistance(Vector vector, int modX, int modY) {
 		return getWrapDistance(x, vector.getX(), modX) + getWrapDistance(y, vector.getY(), modY);
 	}
-	public int getWrapDistance(int a, int b, int mod) {
+	public static int getWrapDistance(int a, int b, int mod) {
 		if (a > b) {
 			return getWrapDistance(b, a, mod);
 		}
 		return Math.min(a + mod - b, b - a);
+	}
+	public Direction getDirectionTo(Vector vector, GameMap gameMap) {
+		// TODO make more efficient
+		for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
+			if (this.add(direction, gameMap).equals(vector)) {
+				return direction;
+			}
+		}
+		return null;
 	}
 	@Override
 	public int hashCode() {
