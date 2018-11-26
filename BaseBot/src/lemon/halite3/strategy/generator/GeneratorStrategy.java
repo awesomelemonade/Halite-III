@@ -102,7 +102,10 @@ public class GeneratorStrategy implements Strategy {
 						}
 					}
 					if (bestPlan != null) {
-						// TODO: Apply mineMap
+						// Apply bestPlan's mineMap
+						for (Vector vector : bestPlan.getMineMap().keySet()) {
+							mineMap.put(vector, mineMap.getOrDefault(vector, 0) + bestPlan.getMineMap().get(vector));
+						}
 						handleMicro(moveQueue, ship, bestPlan, bestQuad);
 					}
 				}
@@ -162,7 +165,7 @@ public class GeneratorStrategy implements Strategy {
 		return vectors;
 	}
 	public HeuristicsPlan getPlan(Map<Vector, Integer> mineMap, Set<Vector> vectors, int haliteNeeded, Ship ship) {
-		return Heuristics.execute(ship.getLocation(), ship.getHalite(), haliteNeeded, vectors, gameMap.getMyPlayer().getShipyardLocation());
+		return Heuristics.execute(ship.getLocation(), ship.getHalite(), haliteNeeded, vectors, gameMap.getMyPlayer().getShipyardLocation(), mineMap);
 	}
 	public int getHaliteCount(Quad quad, Map<Vector, Integer> mineMap) {
 		int halite = 0;

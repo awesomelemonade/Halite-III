@@ -3,7 +3,7 @@ import java.util.Date;
 import java.util.Scanner;
 
 import lemon.halite3.strategy.Strategy;
-import lemon.halite3.strategy.greedy.GreedyStrategy;
+import lemon.halite3.strategy.generator.GeneratorStrategy;
 import lemon.halite3.util.Benchmark;
 import lemon.halite3.util.DebugLog;
 import lemon.halite3.util.GameConstants;
@@ -34,7 +34,7 @@ public class MyBot {
 				DebugLog.initialize(String.format("logs/%s-%d.log", FILENAME_DATE_FORMAT.format(currentDate), gameMap.getMyPlayerId()));
 			}
 			DebugLog.log(String.format("Initialization - %s - %d", READABLE_DATE_FORMAT.format(currentDate), gameMap.getMyPlayerId()));
-			Strategy strategy = new GreedyStrategy();
+			Strategy strategy = new GeneratorStrategy();
 			DebugLog.log(String.format("Executing Strategy: %s - Timeout: %f", strategy.getClass().getSimpleName(), timeout));
 			gameMap.ready(strategy.init(gameMap));
 			strategy.run(gameMap);

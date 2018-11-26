@@ -20,7 +20,7 @@ public class Heuristics {
 		Heuristics.gameMap = gameMap;
 		Heuristics.dp = dp;
 	}
-	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end) {
+	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end, Map<Vector, Integer> mineMap) {
 		List<Vector> totalPath = new ArrayList<Vector>();
 		Vector current = start;
 		while (!vectors.isEmpty()) {
@@ -39,17 +39,17 @@ public class Heuristics {
 		}
 		totalPath.add(current);
 		HeuristicsPlan plan = new HeuristicsPlan(totalPath);
-		heuristic(totalPath, halite, haliteNeeded, plan);
+		heuristic(totalPath, halite, haliteNeeded, plan, mineMap);
 		plan.addTotalTurns(current.getManhattanDistance(end, gameMap));
 		return plan;
 	}
-	public static HeuristicsPlan heuristic(List<Vector> path, int halite, int haliteNeeded, HeuristicsPlan plan) {
+	public static HeuristicsPlan heuristic(List<Vector> path, int halite, int haliteNeeded, HeuristicsPlan plan, Map<Vector, Integer> mineMap) {
 		Map<Vector, Integer> totalCounts = getCounts(path);
 		Map<Vector, Integer> mineValues = new HashMap<Vector, Integer>();
-		Map<Vector, Integer> mineMap = new HashMap<Vector, Integer>();
+		Map<Vector, Integer> tempMineMap = new HashMap<Vector, Integer>();
 		Map<Vector, Integer> counts = new HashMap<Vector, Integer>();
 		for (Vector vector : path) {
-			mineValues.put(vector, getMineValue(vector, mineMap, totalCounts));
+			mineValues.put(vector, getMineValue(vector, mineMap, tempMineMap, totalCounts));
 		}
 		PriorityQueue<Vector> queue = new PriorityQueue<Vector>(new Comparator<Vector>() {
 			@Override
@@ -61,49 +61,47 @@ public class Heuristics {
 			if (!queue.contains(vector)) { // TODO: Make it not O(n)
 				queue.add(vector); // Make vector available for mining
 			}
-			int costOfMovingOutOfThisSquare = (gameMap.getHalite(vector) - mineMap.getOrDefault(vector, 0)) / GameConstants.MOVE_COST_RATIO;
+			int costOfMovingOutOfThisSquare = (gameMap.getHalite(vector) - mineMap.getOrDefault(vector, 0) - tempMineMap.getOrDefault(vector, 0)) / GameConstants.MOVE_COST_RATIO;
 			if (costOfMovingOutOfThisSquare > halite) { // we cannot pass normally w/o mining
 				// mine some halite
 				Vector mineLocation = queue.poll();
 				plan.incrementMineCount(mineLocation);
-				int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0);
+				int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0) - tempMineMap.getOrDefault(mineLocation, 0);
 				int mined = getMined(haliteLeft);
 				halite += mined + counts.getOrDefault(mineLocation, 0) * 
 						(haliteLeft / GameConstants.MOVE_COST_RATIO - (haliteLeft - mined) / GameConstants.MOVE_COST_RATIO);
-				mineMap.put(mineLocation, mineMap.getOrDefault(mineLocation, 0) + mined);
+				tempMineMap.put(mineLocation, tempMineMap.getOrDefault(mineLocation, 0) + mined);
 				// Put mineLocation back to queue
-				mineValues.put(mineLocation, getMineValue(mineLocation, mineMap, totalCounts));
+				mineValues.put(mineLocation, getMineValue(mineLocation, mineMap, tempMineMap, totalCounts));
 				queue.add(mineLocation);
 			}
 			counts.put(vector, counts.getOrDefault(vector, 0) + 1);
-			halite -= (gameMap.getHalite(vector) - mineMap.getOrDefault(vector, 0)) / GameConstants.MOVE_COST_RATIO; // Subtract move cost from halite
+			halite -= (gameMap.getHalite(vector) - tempMineMap.getOrDefault(vector, 0)) / GameConstants.MOVE_COST_RATIO; // Subtract move cost from halite
 		}
 		// Pop out desired amount
 		while (halite < haliteNeeded) {
 			Vector mineLocation = queue.poll();
 			plan.incrementMineCount(mineLocation);
-			int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0);
-			
+			int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0) - tempMineMap.getOrDefault(mineLocation, 0);
 			if (haliteLeft <= 0) {
 				plan.addTotalTurns(9999);
-				//DebugLog.log("Cannot make threshold :( " + halite + "/" + haliteNeeded + " - " + path);
 				return plan;
 			}
-			
 			int mined = getMined(haliteLeft);
 			halite += mined + counts.get(mineLocation) * 
 					(haliteLeft / GameConstants.MOVE_COST_RATIO - (haliteLeft - mined) / GameConstants.MOVE_COST_RATIO);
-			mineMap.put(mineLocation, mineMap.getOrDefault(mineLocation, 0) + mined);
+			tempMineMap.put(mineLocation, tempMineMap.getOrDefault(mineLocation, 0) + mined);
 			// Put mineLocation back to queue
-			mineValues.put(mineLocation, getMineValue(mineLocation, mineMap, totalCounts));
+			mineValues.put(mineLocation, getMineValue(mineLocation, mineMap, tempMineMap, totalCounts));
 			queue.add(mineLocation);
 		}
+		plan.setMineMap(tempMineMap);
 		return plan;
 	}
 	public static int getMined(int halite) {
 		return (halite + GameConstants.EXTRACT_RATIO - 1) / GameConstants.EXTRACT_RATIO; // Rounds up without Math.ceil()
 	}
-	public static int getMineValue(Vector vector, Map<Vector, Integer> mineMap, Map<Vector, Integer> totalCounts) {
+	public static int getMineValue(Vector vector, Map<Vector, Integer> mineMap, Map<Vector, Integer> tempMineMap, Map<Vector, Integer> totalCounts) {
 		int haliteLeft = gameMap.getHalite(vector) - mineMap.getOrDefault(vector, 0);
 		int mine = getMined(haliteLeft);
 		return mine + totalCounts.get(vector) * (haliteLeft / GameConstants.MOVE_COST_RATIO - (haliteLeft - mine) / GameConstants.MOVE_COST_RATIO);
@@ -147,10 +145,12 @@ public class Heuristics {
 	static class HeuristicsPlan {
 		private List<Vector> totalPath;
 		private Map<Vector, Integer> mineCounts;
+		private Map<Vector, Integer> mineMap;
 		private int totalTurns;
 		public HeuristicsPlan(List<Vector> totalPath) {
 			this.totalPath = totalPath;
 			this.mineCounts = new HashMap<Vector, Integer>();
+			this.mineMap = new HashMap<Vector, Integer>();
 			this.totalTurns = totalPath.size();
 		}
 		public List<Vector> getTotalPath(){
@@ -160,7 +160,13 @@ public class Heuristics {
 			mineCounts.put(vector, mineCounts.getOrDefault(vector, 0) + 1);
 			totalTurns++;
 		}
-		public Map<Vector, Integer> getMineCounts(){
+		public void setMineMap(Map<Vector, Integer> mineMap) {
+			this.mineMap = mineMap;
+		}
+		public Map<Vector, Integer> getMineMap() {
+			return mineMap;
+		}
+		public Map<Vector, Integer> getMineCounts() {
 			return mineCounts;
 		}
 		public void addTotalTurns(int turns) {

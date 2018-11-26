@@ -56,7 +56,7 @@ public class Navigation {
 		dp[vector.getX()][vector.getY()] = result;
 		return result;
 	}
-	public Direction getDirection(int start, int end, int mod, Direction neg, Direction pos) {
+	public static Direction getDirection(int start, int end, int mod, Direction neg, Direction pos) {
 		return end > start ? (end - start < mod - end + start ? pos : neg) : (start - end < mod - start + end ? neg : pos);
 	}
 }
