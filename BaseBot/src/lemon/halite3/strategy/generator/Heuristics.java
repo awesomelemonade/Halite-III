@@ -15,10 +15,8 @@ import lemon.halite3.util.Vector;
 
 public class Heuristics {
 	private static GameMap gameMap;
-	private static int[][][][] dp;
-	public static void init(GameMap gameMap, int[][][][] dp) {
+	public static void init(GameMap gameMap) {
 		Heuristics.gameMap = gameMap;
-		Heuristics.dp = dp;
 	}
 	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end, Map<Vector, Integer> mineMap) {
 		List<Vector> totalPath = new ArrayList<Vector>();
@@ -114,7 +112,6 @@ public class Heuristics {
 		return map;
 	}
 	public static void addPath(Vector start, Vector end, List<Vector> path) {
-		int[][] dp = Heuristics.dp[end.getX()][end.getY()];
 		Direction a = getDirection(start.getX(), end.getX(), gameMap.getWidth(), Direction.WEST, Direction.EAST);
 		Direction b = getDirection(start.getY(), end.getY(), gameMap.getHeight(), Direction.NORTH, Direction.SOUTH);
 		Vector current = start;
@@ -124,15 +121,15 @@ public class Heuristics {
 			int minValue = Integer.MAX_VALUE;
 			if (current.getX() != end.getX()) {
 				Vector v = current.add(a, gameMap);
-				if (dp[v.getX()][v.getY()] < minValue) {
-					minValue = dp[v.getX()][v.getY()];
+				if (DP.getCost(end, v) < minValue) {
+					minValue = DP.getCost(end, v);
 					minVector = v;
 				}
 			}
 			if (current.getY() != end.getY()) {
 				Vector v = current.add(b, gameMap);
-				if (dp[v.getX()][v.getY()] < minValue) {
-					minValue = dp[v.getX()][v.getY()];
+				if (DP.getCost(end, v) < minValue) {
+					minValue = DP.getCost(end, v);
 					minVector = v;
 				}
 			}

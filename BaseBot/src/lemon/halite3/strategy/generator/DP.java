@@ -22,6 +22,13 @@ public class DP {
 		costs = new int[gameMap.getWidth()][gameMap.getHeight()][gameMap.getWidth()][gameMap.getHeight()];
 		queues = new HashMap<Vector, Deque<Vector>>();
 	}
+	public static int getCost(Vector a, Vector b) {
+		int dp = DP.dp[a.getX()][a.getY()][b.getX()][b.getY()];
+		if (dp == UNCALCULATED || dp == QUEUED) {
+			execute(a, b);
+		}
+		return costs[a.getX()][a.getY()][b.getX()][b.getY()];
+	}
 	public static void execute(Vector source, Vector stop) {
 		if (queues.containsKey(source)) {
 			reset(source);
@@ -71,48 +78,5 @@ public class DP {
 			dp[v.getX()][v.getY()] = QUEUED;
 			queue.add(v);
 		}
-	}
-	public static int[][][][] execute(GameMap gameMap){
-		int[][][][] costs = new int[gameMap.getWidth()][gameMap.getHeight()][gameMap.getWidth()][gameMap.getHeight()];
-		for (int i = 0; i < gameMap.getWidth(); ++i) {
-			for (int j = 0; j < gameMap.getHeight(); ++j) {
-				costs[i][j] = execute(gameMap, Vector.getInstance(i, j));
-			}
-		}
-		return costs;
-	}
-	public static int[][] execute(GameMap gameMap, Vector source) {
-		int[][] dp = new int[gameMap.getWidth()][gameMap.getHeight()];
-		int[][] costs = new int[gameMap.getWidth()][gameMap.getHeight()];
-		for (int i = 0; i < dp.length; ++i) {
-			for (int j = 0; j < dp[0].length; ++j) {
-				dp[i][j] = UNCALCULATED;
-			}
-		}
-		Deque<Vector> queue = new ArrayDeque<Vector>();
-		dp[source.getX()][source.getY()] = gameMap.getHalite(source) / GameConstants.MOVE_COST_RATIO;
-		costs[source.getX()][source.getY()] = 0;
-		for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
-			Vector v = source.add(direction, gameMap);
-			dp[v.getX()][v.getY()] = QUEUED;
-			queue.add(v);
-		}
-		while (!queue.isEmpty()) {
-			Vector vector = queue.poll();
-			int min = Integer.MAX_VALUE;
-			for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
-				Vector v = vector.add(direction, gameMap);
-				int x = dp[v.getX()][v.getY()];
-				if (x == UNCALCULATED) {
-					queue.add(v);
-					dp[v.getX()][v.getY()] = QUEUED;
-				} else if (x != QUEUED) {
-					min = Math.min(min, x);
-				}
-			}
-			costs[vector.getX()][vector.getY()] = min;
-			dp[vector.getX()][vector.getY()] = min + gameMap.getHalite(vector) / GameConstants.MOVE_COST_RATIO;
-		}
-		return costs;
 	}
 }

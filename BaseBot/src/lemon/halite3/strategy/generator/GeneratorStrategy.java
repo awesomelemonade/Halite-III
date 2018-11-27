@@ -40,13 +40,14 @@ public class GeneratorStrategy implements Strategy {
 		// shipPriority can be optimized using a balanced tree to have O(log(n)) reordering rather than O(n)
 		List<Integer> shipPriorities = new ArrayList<Integer>(); // In order of the last time they dropped off halite
 		Set<Integer> returningShips = new HashSet<Integer>();
+		Heuristics.init(gameMap);
 		while (true) {
 			gameMap.update();
 			try (Benchmark benchmark = new Benchmark("Benchmark: %ss")) {
 				DebugLog.log("New Turn: " + gameMap.getCurrentTurn() + " - numShips=" + gameMap.getMyPlayer().getShips().size() + 
 						" ***********************************************");
 				try (Benchmark b = new Benchmark("DP: %ss")) {
-					Heuristics.init(gameMap, DP.execute(gameMap));
+					DP.reset();
 				}
 				MoveQueue moveQueue = new MoveQueue(gameMap);
 				Map<Vector, Integer> mineMap = new HashMap<Vector, Integer>();
