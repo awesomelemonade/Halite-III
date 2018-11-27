@@ -18,11 +18,15 @@ public class DP {
 	private static int[][][][] costs;
 	private static Map<Vector, Deque<Vector>> queues;
 	public static void init(GameMap gameMap) {
+		DP.gameMap = gameMap;
 		dp = new int[gameMap.getWidth()][gameMap.getHeight()][gameMap.getWidth()][gameMap.getHeight()];
 		costs = new int[gameMap.getWidth()][gameMap.getHeight()][gameMap.getWidth()][gameMap.getHeight()];
 		queues = new HashMap<Vector, Deque<Vector>>();
 	}
 	public static int getCost(Vector a, Vector b) {
+		if (!queues.containsKey(a)) {
+			reset(a);
+		}
 		int dp = DP.dp[a.getX()][a.getY()][b.getX()][b.getY()];
 		if (dp == UNCALCULATED || dp == QUEUED) {
 			execute(a, b);
@@ -30,9 +34,6 @@ public class DP {
 		return costs[a.getX()][a.getY()][b.getX()][b.getY()];
 	}
 	public static void execute(Vector source, Vector stop) {
-		if (queues.containsKey(source)) {
-			reset(source);
-		}
 		int[][] dp = DP.dp[source.getX()][source.getY()];
 		int[][] costs = DP.costs[source.getX()][source.getY()];
 		Deque<Vector> queue = queues.get(source);

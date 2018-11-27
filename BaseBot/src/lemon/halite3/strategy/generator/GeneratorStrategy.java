@@ -33,6 +33,7 @@ public class GeneratorStrategy implements Strategy {
 		// Generator Strategy because MinePlans are now generator-type rather than statically defined based off squares. Therefore, thresholds can be more flexible.
 		this.gameMap = gameMap;
 		Vector.init(gameMap);
+		DP.init(gameMap);
 		return "GeneratorStrategy";
 	}
 	@Override
