@@ -34,6 +34,7 @@ public class GeneratorStrategy implements Strategy {
 		this.gameMap = gameMap;
 		Vector.init(gameMap);
 		DP.init(gameMap);
+		Navigation.init(gameMap);
 		return "GeneratorStrategy";
 	}
 	@Override
@@ -87,7 +88,7 @@ public class GeneratorStrategy implements Strategy {
 							if (ship.getHalite() <= GameConstants.MAX_HALITE / 5) {
 								returningShips.remove(ship.getShipId());
 							} else {
-								moveQueue.move(ship, new Navigation(gameMap).navigate(ship.getLocation(), gameMap.getMyPlayer().getShipyardLocation())); // TODO dropoffs
+								moveQueue.move(ship, Navigation.navigate(ship.getLocation(), gameMap.getMyPlayer().getShipyardLocation())); // TODO dropoffs
 								continue;
 							}
 						}
