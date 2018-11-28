@@ -100,7 +100,7 @@ public class Heuristics {
 		return (halite + GameConstants.EXTRACT_RATIO - 1) / GameConstants.EXTRACT_RATIO; // Rounds up without Math.ceil()
 	}
 	public static int getMineValue(Vector vector, Map<Vector, Integer> mineMap, Map<Vector, Integer> tempMineMap, Map<Vector, Integer> totalCounts) {
-		int haliteLeft = gameMap.getHalite(vector) - mineMap.getOrDefault(vector, 0);
+		int haliteLeft = gameMap.getHalite(vector) - mineMap.getOrDefault(vector, 0) - tempMineMap.getOrDefault(vector, 0);
 		int mine = getMined(haliteLeft);
 		return mine + totalCounts.get(vector) * (haliteLeft / GameConstants.MOVE_COST_RATIO - (haliteLeft - mine) / GameConstants.MOVE_COST_RATIO);
 	}
@@ -147,7 +147,6 @@ public class Heuristics {
 		public HeuristicsPlan(List<Vector> totalPath) {
 			this.totalPath = totalPath;
 			this.mineCounts = new HashMap<Vector, Integer>();
-			this.mineMap = new HashMap<Vector, Integer>();
 			this.totalTurns = totalPath.size();
 		}
 		public List<Vector> getTotalPath(){
