@@ -76,12 +76,10 @@ public class GeneratorStrategy implements Strategy {
 						DebugLog.log("Executing Ship: " + ship.toString());
 						// Check if the ship's only option is Direction.STILL
 						if (ship.getHalite() < gameMap.getHalite(ship.getLocation()) / GameConstants.MOVE_COST_RATIO) {
-							DebugLog.log("\tNo Option");
 							moveQueue.move(ship, Direction.STILL);
 							continue;
 						}
 						int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite() - 50;
-						DebugLog.log("\tHalite Needed: " + haliteNeeded);
 						if (haliteNeeded <= 0) {
 							returningShips.add(ship.getShipId());
 						}
@@ -89,7 +87,6 @@ public class GeneratorStrategy implements Strategy {
 							if (ship.getHalite() <= GameConstants.MAX_HALITE / 5) {
 								returningShips.remove(ship.getShipId());
 							} else {
-								DebugLog.log("\tReturning to shipyard");
 								moveQueue.move(ship, new Navigation(gameMap).navigate(ship.getLocation(), gameMap.getMyPlayer().getShipyardLocation())); // TODO dropoffs
 								continue;
 							}
@@ -140,9 +137,9 @@ public class GeneratorStrategy implements Strategy {
 				moveQueue.resolveCollisions(shipPriorities);
 				// Try to spawn a ship
 				if (moveQueue.isSafe(gameMap.getMyPlayer().getShipyardLocation())) {
-					if (gameMap.getMyPlayer().getShips().size() == 0 && 
+					if (gameMap.getMyPlayer().getShips().size() >= 0 && 
 							gameMap.getMyPlayer().getHalite() >= GameConstants.SHIP_COST && // TODO - consider cost of building dropoffs in the same turn
-							gameMap.getCurrentTurn() + 150 < GameConstants.MAX_TURNS) {
+							gameMap.getCurrentTurn() < GameConstants.MAX_TURNS / 2) {
 						Networking.spawnShip();
 					}
 				}
@@ -152,17 +149,9 @@ public class GeneratorStrategy implements Strategy {
 		}
 	}
 	public void handleMicro(MoveQueue moveQueue, Ship ship, HeuristicsPlan plan, Quad quad) {
-		DebugLog.log("\tHalite: " + gameMap.getHalite(ship.getLocation()));
-		DebugLog.log("\tTotalPath: " + plan.getTotalPath());
-		DebugLog.log("\tMineCounts: " + plan.getMineCounts());
-		DebugLog.log("\tTotalTurns: " + plan.getTotalTurns());
-		DebugLog.log("\tQuad: " + quad.toString());
-		
 		if (plan.getMineCounts().getOrDefault(ship.getLocation(), 0) > 0) {
-			DebugLog.log("\t\tMining...");
 			moveQueue.move(ship, Direction.STILL);
 		} else {
-			DebugLog.log("\t\tProceeding to... " + plan.getTotalPath().get(1));
 			moveQueue.move(ship, ship.getLocation().getDirectionTo(plan.getTotalPath().get(1), gameMap));
 		}
 	}
