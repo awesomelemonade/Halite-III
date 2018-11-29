@@ -18,9 +18,11 @@ public class Heuristics {
 	public static void init(GameMap gameMap) {
 		Heuristics.gameMap = gameMap;
 	}
-	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end, Map<Vector, Integer> mineMap) {
-		List<Vector> totalPath = new ArrayList<Vector>();
+	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end, Map<Vector, Integer> mineMap, int cutoff) {
+		List<Vector> order = new ArrayList<Vector>();
+		int totalDistance = 1; // Account for adding "current" into totalPath at the end
 		Vector current = start;
+		order.add(current);
 		while (!vectors.isEmpty()) {
 			int bestDistance = Integer.MAX_VALUE;
 			Vector bestVector = null;
@@ -31,17 +33,28 @@ public class Heuristics {
 					bestVector = vector;
 				}
 			}
-			addPath(current, bestVector, totalPath);
+			order.add(bestVector);
+			totalDistance += bestDistance;
+			if (totalDistance >= cutoff) {
+				return null;
+			}
 			vectors.remove(bestVector);
 			current = bestVector;
 		}
+		// Actually create path
+		List<Vector> totalPath = new ArrayList<Vector>();
+		for (int i = 0; i < order.size() - 1; ++i) {
+			addPath(order.get(i), order.get(i + 1), totalPath);
+		}
 		totalPath.add(current);
 		HeuristicsPlan plan = new HeuristicsPlan(totalPath);
-		heuristic(totalPath, halite, haliteNeeded, plan, mineMap);
+		if (!heuristic(totalPath, halite, haliteNeeded, plan, mineMap, cutoff)) {
+			return null;
+		}
 		plan.addTotalTurns(current.getManhattanDistance(end, gameMap));
 		return plan;
 	}
-	public static HeuristicsPlan heuristic(List<Vector> path, int halite, int haliteNeeded, HeuristicsPlan plan, Map<Vector, Integer> mineMap) {
+	public static boolean heuristic(List<Vector> path, int halite, int haliteNeeded, HeuristicsPlan plan, Map<Vector, Integer> mineMap, int cutoff) {
 		Map<Vector, Integer> totalCounts = getCounts(path);
 		Map<Vector, Integer> mineValues = new HashMap<Vector, Integer>();
 		Map<Vector, Integer> tempMineMap = new HashMap<Vector, Integer>();
@@ -80,10 +93,13 @@ public class Heuristics {
 		while (halite < haliteNeeded) {
 			Vector mineLocation = queue.poll();
 			plan.incrementMineCount(mineLocation);
+			if (plan.getTotalTurns() >= cutoff) {
+				return false;
+			}
 			int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0) - tempMineMap.getOrDefault(mineLocation, 0);
 			if (haliteLeft <= 0) {
 				plan.addTotalTurns(9999);
-				return plan;
+				return plan.getTotalTurns() < cutoff;
 			}
 			int mined = getMined(haliteLeft);
 			halite += mined + counts.get(mineLocation) * 
@@ -94,7 +110,7 @@ public class Heuristics {
 			queue.add(mineLocation);
 		}
 		plan.setMineMap(tempMineMap);
-		return plan;
+		return true;
 	}
 	public static int getMined(int halite) {
 		return (halite + GameConstants.EXTRACT_RATIO - 1) / GameConstants.EXTRACT_RATIO; // Rounds up without Math.ceil()
