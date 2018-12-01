@@ -42,6 +42,7 @@ public class GeneratorStrategy implements Strategy {
 		// shipPriority can be optimized using a balanced tree to have O(log(n)) reordering rather than O(n)
 		List<Integer> shipPriorities = new ArrayList<Integer>(); // In order of the last time they dropped off halite
 		Set<Integer> returningShips = new HashSet<Integer>();
+		Map<Integer, Vector> lastPlan = new HashMap<Integer, Vector>();
 		Heuristics.init(gameMap);
 		while (true) {
 			gameMap.update();
@@ -98,25 +99,30 @@ public class GeneratorStrategy implements Strategy {
 						HeuristicsPlan bestPlan = null;
 						int bestPlanScore = Integer.MAX_VALUE;
 						Quad bestQuad = null;
+						Vector bestVector = null;
 						queue.add(ship.getLocation());
 						visited.add(ship.getLocation());
 						while (!queue.isEmpty()) {
 							Vector vector = queue.poll();
-							// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
-							for (int i = 0; i < 8; ++i) {
-								Quad quad = getQuad(vector, i);
-								if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) { // Arbitrary threshold greater than haliteNeeded
-									Set<Vector> vectors = getVectors(mineMap, quad, haliteNeeded);
-									HeuristicsPlan plan = getPlan(mineMap, vectors, GameConstants.MAX_HALITE - 50, ship, bestPlanScore);
-									if (plan != null) {
-										int score = plan.getTotalTurns();
-										if (score < bestPlanScore) {
-											bestPlan = plan;
-											bestPlanScore = score;
-											bestQuad = quad;
+							if ((lastPlan.containsKey(shipId) && vector.getManhattanDistance(lastPlan.get(shipId), gameMap) < 3) || 
+									ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation()) || Math.random() < 0.05) {
+								// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
+								for (int i = 0; i < 8; ++i) {
+									Quad quad = getQuad(vector, i);
+									if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) { // Arbitrary threshold greater than haliteNeeded
+										Set<Vector> vectors = getVectors(mineMap, quad, haliteNeeded);
+										HeuristicsPlan plan = getPlan(mineMap, vectors, GameConstants.MAX_HALITE - 50, ship, bestPlanScore);
+										if (plan != null) {
+											int score = plan.getTotalTurns();
+											if (score < bestPlanScore) {
+												bestPlan = plan;
+												bestPlanScore = score;
+												bestQuad = quad;
+												bestVector = vector;
+											}
 										}
+										break;
 									}
-									break;
 								}
 							}
 							for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
@@ -128,6 +134,7 @@ public class GeneratorStrategy implements Strategy {
 							}
 						}
 						if (bestPlan != null) {
+							lastPlan.put(shipId, bestVector);
 							// Apply bestPlan's mineMap
 							for (Vector vector : bestPlan.getMineMap().keySet()) {
 								mineMap.put(vector, mineMap.getOrDefault(vector, 0) + bestPlan.getMineMap().get(vector));
