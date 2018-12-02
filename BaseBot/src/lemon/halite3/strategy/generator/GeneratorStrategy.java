@@ -105,7 +105,7 @@ public class GeneratorStrategy implements Strategy {
 						while (!queue.isEmpty()) {
 							Vector vector = queue.poll();
 							if ((lastPlan.containsKey(shipId) && vector.getManhattanDistance(lastPlan.get(shipId), gameMap) < 3) || 
-									ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation()) || Math.random() < 0.05) {
+									ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation()) || Math.random() < ((gameMap.getWidth() >= 56 || gameMap.getMyPlayer().getShips().size() >= 40) ? 0.02 : 0.05)) {
 								// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
 								for (int i = 0; i < 8; ++i) {
 									Quad quad = getQuad(vector, i);

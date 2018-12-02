@@ -49,14 +49,19 @@ public class MoveQueue {
 			if (handled.contains(shipId)) {
 				continue;
 			}
+			if(!map.containsKey(shipId)) {
+				map.put(shipId, Direction.STILL);
+			}
 			// Check if current square is unsafe
 			Vector current = gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap);
 			if (unsafe.contains(current)) {
-				map.put(shipId, Direction.STILL); // Still could actually still result in a collision.. TODO
-				current = gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap);
+				if (gameMap.getHalite(gameMap.getMyPlayer().getShips().get(shipId).getLocation()) > 100) {
+					map.put(shipId, Direction.STILL); // Still could actually still result in a collision.. TODO
+					current = gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap);
+				}
 				if (unsafe.contains(current)) {
 					// Randomly Selected - TODO: Make direction priorities
-					for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
+					for (Direction direction : Direction.getRandomCardinalPermutation()) {
 						map.put(shipId, direction);
 						current = gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap);
 						if (!unsafe.contains(current)) {
