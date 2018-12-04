@@ -20,9 +20,17 @@ public class Benchmark implements AutoCloseable {
 	public void push() {
 		deque.push(System.nanoTime());
 	}
-
+	
+	public long peek() {
+		return System.nanoTime() - deque.peek();
+	}
+	
 	public void peek(String formatString) {
 		printFormattedString(formatString, System.nanoTime() - deque.peek());
+	}
+	
+	public long pop () {
+		return System.nanoTime() - deque.pop();
 	}
 
 	public void pop(String formatString) {

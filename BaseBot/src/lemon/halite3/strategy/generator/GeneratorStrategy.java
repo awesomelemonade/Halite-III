@@ -28,20 +28,26 @@ import lemon.halite3.util.Vector;
 
 public class GeneratorStrategy implements Strategy {
 	private GameMap gameMap;
+	private double timeout;
 	@Override
-	public String init(GameMap gameMap) {
+	public String init(GameMap gameMap, double timeout) {
 		// Generator Strategy because MinePlans are now generator-type rather than statically defined based off squares. Therefore, thresholds can be more flexible.
 		this.gameMap = gameMap;
+		this.timeout = timeout;
 		Vector.init(gameMap);
 		DP.init(gameMap);
 		Navigation.init(gameMap);
 		return "GeneratorStrategy";
+	}
+	public boolean isLowOnTime(Benchmark benchmark, double millis) {
+		return ((double) benchmark.peek()) / 1000000000.0 > (timeout - millis);
 	}
 	@Override
 	public void run(GameMap gameMap) {
 		// shipPriority can be optimized using a balanced tree to have O(log(n)) reordering rather than O(n)
 		List<Integer> shipPriorities = new ArrayList<Integer>(); // In order of the last time they dropped off halite
 		Set<Integer> returningShips = new HashSet<Integer>();
+		Map<Integer, Vector> lastPlan = new HashMap<Integer, Vector>();
 		Heuristics.init(gameMap);
 		while (true) {
 			gameMap.update();
@@ -98,24 +104,31 @@ public class GeneratorStrategy implements Strategy {
 						HeuristicsPlan bestPlan = null;
 						int bestPlanScore = Integer.MAX_VALUE;
 						Quad bestQuad = null;
+						Vector bestVector = null;
 						queue.add(ship.getLocation());
 						visited.add(ship.getLocation());
 						while (!queue.isEmpty()) {
 							Vector vector = queue.poll();
-							// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
-							for (int i = 0; i < 8; ++i) {
-								Quad quad = getQuad(vector, i);
-								if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) { // Arbitrary threshold greater than haliteNeeded
-									Set<Vector> vectors = getVectors(mineMap, quad, haliteNeeded);
-									HeuristicsPlan plan = getPlan(mineMap, vectors, GameConstants.MAX_HALITE - 50, ship);
-									int score = plan.getTotalTurns();
-									//benchmark.peek("\t\tFound MinePlan: " + plan + " - " + turns + " - " + bestPlanTurns + " - %s");
-									if (score < bestPlanScore) {
-										bestPlan = plan;
-										bestPlanScore = score;
-										bestQuad = quad;
+							if ((lastPlan.containsKey(shipId) && vector.getManhattanDistance(lastPlan.get(shipId), gameMap) < 3) || 
+									ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation()) || 
+									((!isLowOnTime(benchmark, 200)) && (Math.random() < (0.05 - 2 * ((gameMap.getWidth() >= 56 ? 1 : 0) + (gameMap.getMyPlayer().getShips().size() >= 30 ? 1 : 0)))))) {
+								// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
+								for (int i = 0; i < 8; ++i) {
+									Quad quad = getQuad(vector, i);
+									if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) { // Arbitrary threshold greater than haliteNeeded
+										Set<Vector> vectors = getVectors(mineMap, quad, haliteNeeded);
+										HeuristicsPlan plan = getPlan(mineMap, vectors, GameConstants.MAX_HALITE - 50, ship, bestPlanScore);
+										if (plan != null) {
+											int score = plan.getTotalTurns();
+											if (score < bestPlanScore) {
+												bestPlan = plan;
+												bestPlanScore = score;
+												bestQuad = quad;
+												bestVector = vector;
+											}
+										}
+										break;
 									}
-									break;
 								}
 							}
 							for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
@@ -127,6 +140,7 @@ public class GeneratorStrategy implements Strategy {
 							}
 						}
 						if (bestPlan != null) {
+							lastPlan.put(shipId, bestVector);
 							// Apply bestPlan's mineMap
 							for (Vector vector : bestPlan.getMineMap().keySet()) {
 								mineMap.put(vector, mineMap.getOrDefault(vector, 0) + bestPlan.getMineMap().get(vector));
@@ -182,8 +196,8 @@ public class GeneratorStrategy implements Strategy {
 		}
 		return vectors;
 	}
-	public HeuristicsPlan getPlan(Map<Vector, Integer> mineMap, Set<Vector> vectors, int haliteNeeded, Ship ship) {
-		return Heuristics.execute(ship.getLocation(), ship.getHalite(), haliteNeeded, vectors, gameMap.getMyPlayer().getShipyardLocation(), mineMap);
+	public HeuristicsPlan getPlan(Map<Vector, Integer> mineMap, Set<Vector> vectors, int haliteNeeded, Ship ship, int cutoff) {
+		return Heuristics.execute(ship.getLocation(), ship.getHalite(), haliteNeeded, vectors, gameMap.getMyPlayer().getShipyardLocation(), mineMap, cutoff);
 	}
 	public int getHaliteCount(Quad quad, Map<Vector, Integer> mineMap) {
 		int halite = 0;
