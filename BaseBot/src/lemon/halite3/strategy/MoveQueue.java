@@ -17,10 +17,12 @@ import lemon.halite3.util.Vector;
 public class MoveQueue {
 	private GameMap gameMap;
 	private Map<Integer, Direction[]> map;
+	private Map<Integer, Direction> resolved;
 	private Set<Vector> unsafe;
 	public MoveQueue(GameMap gameMap) {
 		this.gameMap = gameMap;
 		this.map = new HashMap<Integer, Direction[]>();
+		this.resolved = new HashMap<Integer, Direction>();
 		this.unsafe = new HashSet<Vector>();
 	}
 	public void move(int shipId, Direction... directions) {
@@ -30,6 +32,7 @@ public class MoveQueue {
 		this.move(ship.getShipId(), directions);
 	}
 	public void resolveCollisions() {
+		// TODO use resolved HashMap
 		for (int shipId : map.keySet()) {
 			Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
 			// Marks square as unsafe
@@ -37,51 +40,57 @@ public class MoveQueue {
 		}
 	}
 	public void resolveCollisions(List<Integer> shipPriorities) {
-		Set<Integer> handled = new HashSet<Integer>();
+		resolved.clear();
 		// Handle ships forced to stand still
 		for (int shipId : shipPriorities) {
 			Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
 			if (ship.getHalite() < gameMap.getHalite(ship.getLocation()) / GameConstants.MOVE_COST_RATIO) {
 				unsafe.add(ship.getLocation());
-				this.move(ship, Direction.STILL);
-				handled.add(shipId);
+				resolved.put(shipId, Direction.STILL);
 			}
 		}
 		// TODO - Handle ship spawning + Creation of dropoffs
 		// TODO - Handle collisions between ships
 		for (int shipId : shipPriorities) {
-			if (handled.contains(shipId)) {
+			if (resolved.containsKey(shipId)) {
 				continue;
 			}
 			if(!map.containsKey(shipId)) {
-				map.put(shipId, Direction.STILL);
+				this.move(shipId, Direction.STILL);
 			}
-			// Check if current square is unsafe
-			Vector current = gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap);
-			if (unsafe.contains(current)) {
-				map.put(shipId, Direction.STILL); // Still could actually still result in a collision.. TODO
-				current = gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap);
-				if (unsafe.contains(current)) {
-					// Randomly Selected - TODO: Make direction priorities
-					for (Direction direction : Direction.getRandomCardinalPermutation()) {
-						map.put(shipId, direction);
-						current = gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap);
-						if (!unsafe.contains(current)) {
-							break;
-						}
+			Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
+			findValidDirection: {
+				for (Direction direction : map.get(shipId)) {
+					Vector current = ship.getLocation().add(direction, gameMap);
+					if (!unsafe.contains(current)) {
+						unsafe.add(current);
+						resolved.put(shipId, direction);
+						break findValidDirection;
 					}
 				}
+				Vector current = ship.getLocation();
+				if (!unsafe.contains(current)) {
+					unsafe.add(current);
+					resolved.put(shipId, Direction.STILL);
+					break findValidDirection;
+				}
+				for (Direction direction : Direction.getRandomCardinalPermutation()) {
+					current = ship.getLocation().add(direction, gameMap);
+					if (!unsafe.contains(current)) {
+						unsafe.add(current);
+						resolved.put(shipId, direction);
+						break findValidDirection;
+					}
+				}
+				throw new IllegalStateException("No Direction Found");
 			}
-			// Marks square as unsafe
-			unsafe.add(gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap));
-			handled.add(shipId);
 		}
 	}
 	public boolean isSafe(Vector vector) {
 		return !unsafe.contains(vector);
 	}
 	public void send() {
-		for (Entry<Integer, Direction> entry : map.entrySet()) {
+		for (Entry<Integer, Direction> entry : resolved.entrySet()) {
 			Networking.move(entry.getKey(), entry.getValue());
 		}
 	}
