@@ -16,7 +16,7 @@ public class MyBot {
 
 	public static void main(String[] args) {
 		boolean debuglog = false;
-		double timeout = 1900.0; // 1.9 seconds
+		double timeout = 1950.0;
 		if (args.length > 0) {
 			try {
 				debuglog = Boolean.parseBoolean(args[0]);
@@ -36,7 +36,7 @@ public class MyBot {
 			DebugLog.log(String.format("Initialization - %s - %d", READABLE_DATE_FORMAT.format(currentDate), gameMap.getMyPlayerId()));
 			Strategy strategy = new GeneratorStrategy();
 			DebugLog.log(String.format("Executing Strategy: %s - Timeout: %f", strategy.getClass().getSimpleName(), timeout));
-			gameMap.ready(strategy.init(gameMap));
+			gameMap.ready(strategy.init(gameMap, timeout));
 			strategy.run(gameMap);
 		}
 		Scanner scanner = new Scanner(System.in);

@@ -28,14 +28,19 @@ import lemon.halite3.util.Vector;
 
 public class GeneratorStrategy implements Strategy {
 	private GameMap gameMap;
+	private double timeout;
 	@Override
-	public String init(GameMap gameMap) {
+	public String init(GameMap gameMap, double timeout) {
 		// Generator Strategy because MinePlans are now generator-type rather than statically defined based off squares. Therefore, thresholds can be more flexible.
 		this.gameMap = gameMap;
+		this.timeout = timeout;
 		Vector.init(gameMap);
 		DP.init(gameMap);
 		Navigation.init(gameMap);
 		return "GeneratorStrategy";
+	}
+	public boolean isLowOnTime(Benchmark benchmark, double millis) {
+		return ((double) benchmark.peek()) / 1000000000.0 > (timeout - millis);
 	}
 	@Override
 	public void run(GameMap gameMap) {
@@ -105,7 +110,8 @@ public class GeneratorStrategy implements Strategy {
 						while (!queue.isEmpty()) {
 							Vector vector = queue.poll();
 							if ((lastPlan.containsKey(shipId) && vector.getManhattanDistance(lastPlan.get(shipId), gameMap) < 3) || 
-									ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation()) || Math.random() < ((gameMap.getWidth() >= 56 || gameMap.getMyPlayer().getShips().size() >= 40) ? 0.02 : 0.05)) {
+									ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation()) || 
+									((!isLowOnTime(benchmark, 200)) && (Math.random() < (0.05 - 2 * ((gameMap.getWidth() >= 56 ? 1 : 0) + (gameMap.getMyPlayer().getShips().size() >= 30 ? 1 : 0)))))) {
 								// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
 								for (int i = 0; i < 8; ++i) {
 									Quad quad = getQuad(vector, i);
