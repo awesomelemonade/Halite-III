@@ -16,20 +16,24 @@ import lemon.halite3.util.Vector;
 
 public class MoveQueue {
 	private GameMap gameMap;
-	private Map<Integer, Direction> map;
+	private Map<Integer, Direction[]> map;
 	private Set<Vector> unsafe;
 	public MoveQueue(GameMap gameMap) {
 		this.gameMap = gameMap;
-		this.map = new HashMap<Integer, Direction>();
+		this.map = new HashMap<Integer, Direction[]>();
 		this.unsafe = new HashSet<Vector>();
 	}
-	public void move(Ship ship, Direction direction) {
-		map.put(ship.getShipId(), direction);
+	public void move(int shipId, Direction... directions) {
+		map.put(shipId, directions);
+	}
+	public void move(Ship ship, Direction... directions) {
+		this.move(ship.getShipId(), directions);
 	}
 	public void resolveCollisions() {
 		for (int shipId : map.keySet()) {
+			Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
 			// Marks square as unsafe
-			unsafe.add(gameMap.getMyPlayer().getShips().get(shipId).getLocation().add(map.get(shipId), gameMap));
+			unsafe.add(ship.getLocation().add(map.get(shipId)[0], gameMap));
 		}
 	}
 	public void resolveCollisions(List<Integer> shipPriorities) {
@@ -39,7 +43,7 @@ public class MoveQueue {
 			Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
 			if (ship.getHalite() < gameMap.getHalite(ship.getLocation()) / GameConstants.MOVE_COST_RATIO) {
 				unsafe.add(ship.getLocation());
-				map.put(shipId, Direction.STILL);
+				this.move(ship, Direction.STILL);
 				handled.add(shipId);
 			}
 		}
