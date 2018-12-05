@@ -85,7 +85,8 @@ public class MoveQueue {
 						break findValidDirection;
 					}
 				}
-				throw new IllegalStateException("No Direction Found");
+				resolved.put(shipId, Direction.STILL); // RIP CRASHED
+				//throw new IllegalStateException("No Direction Found");
 			}
 		}
 	}

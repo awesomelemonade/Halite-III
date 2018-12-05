@@ -59,6 +59,19 @@ public class GeneratorStrategy implements Strategy {
 					DP.reset();
 				}
 				MoveQueue moveQueue = new MoveQueue(gameMap);
+				// Mark enemies to not crash into them
+				for (GamePlayer player : gameMap.getPlayers()) {
+					if (player.getPlayerId() == gameMap.getMyPlayerId()) {
+						continue;
+					}
+					for (Ship ship : player.getShips().values()) {
+						if (ship.getHalite() < GameConstants.MAX_HALITE * 4 / 5) {
+							for (Direction direction : Direction.values()) {
+								moveQueue.markUnsafe(ship.getLocation().add(direction, gameMap));
+							}
+						}
+					}
+				}
 				Map<Vector, Integer> mineMap = new HashMap<Vector, Integer>();
 				// updates shipPriority
 				DebugLog.log("Updating Ship Priorities...");
@@ -147,19 +160,6 @@ public class GeneratorStrategy implements Strategy {
 								mineMap.put(vector, mineMap.getOrDefault(vector, 0) + bestPlan.getMineMap().get(vector));
 							}
 							handleMicro(moveQueue, ship, bestPlan, bestQuad);
-						}
-					}
-				}
-				// Mark enemies to not crash into them
-				for (GamePlayer player : gameMap.getPlayers()) {
-					if (player.getPlayerId() == gameMap.getMyPlayerId()) {
-						continue;
-					}
-					for (Ship ship : player.getShips().values()) {
-						if (ship.getHalite() < GameConstants.MAX_HALITE * 4 / 5) {
-							for (Direction direction : Direction.values()) {
-								moveQueue.markUnsafe(ship.getLocation().add(direction, gameMap));
-							}
 						}
 					}
 				}

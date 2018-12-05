@@ -16,7 +16,7 @@ public class MyBot {
 
 	public static void main(String[] args) {
 		boolean debuglog = false;
-		double timeout = 1950.0;
+		double timeout = 1900.0;
 		if (args.length > 0) {
 			try {
 				debuglog = Boolean.parseBoolean(args[0]);
