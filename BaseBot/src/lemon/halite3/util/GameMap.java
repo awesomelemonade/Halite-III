@@ -77,6 +77,9 @@ public class GameMap {
 	public Ship getShip(int x, int y) {
 		return lastUpdated[x][y] == currentTurn ? ships[x][y] : null;
 	}
+	public GamePlayer[] getPlayers() {
+		return players;
+	}
 	public GamePlayer getMyPlayer() {
 		return players[playerId];
 	}

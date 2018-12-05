@@ -22,6 +22,7 @@ import lemon.halite3.util.Direction;
 import lemon.halite3.util.Dropoff;
 import lemon.halite3.util.GameConstants;
 import lemon.halite3.util.GameMap;
+import lemon.halite3.util.GamePlayer;
 import lemon.halite3.util.Networking;
 import lemon.halite3.util.Ship;
 import lemon.halite3.util.Vector;
@@ -149,6 +150,20 @@ public class GeneratorStrategy implements Strategy {
 						}
 					}
 				}
+				// Mark enemies to not crash into them
+				for (GamePlayer player : gameMap.getPlayers()) {
+					if (player.getPlayerId() == gameMap.getMyPlayerId()) {
+						continue;
+					}
+					for (Ship ship : player.getShips().values()) {
+						if (ship.getHalite() < GameConstants.MAX_HALITE * 4 / 5) {
+							for (Direction direction : Direction.values()) {
+								moveQueue.markUnsafe(ship.getLocation().add(direction, gameMap));
+							}
+						}
+					}
+				}
+				// Resolve Collisions
 				moveQueue.resolveCollisions(shipPriorities);
 				// Try to spawn a ship
 				if (moveQueue.isSafe(gameMap.getMyPlayer().getShipyardLocation())) {

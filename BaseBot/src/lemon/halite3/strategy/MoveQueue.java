@@ -31,6 +31,9 @@ public class MoveQueue {
 	public void move(Ship ship, Direction... directions) {
 		this.move(ship.getShipId(), directions);
 	}
+	public void markUnsafe(Vector vector) {
+		unsafe.add(vector);
+	}
 	public void resolveCollisions() {
 		// TODO use resolved HashMap
 		for (int shipId : map.keySet()) {
