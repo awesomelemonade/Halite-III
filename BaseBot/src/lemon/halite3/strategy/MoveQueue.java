@@ -1,11 +1,9 @@
 package lemon.halite3.strategy;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import lemon.halite3.util.Direction;
 import lemon.halite3.util.GameConstants;
@@ -18,12 +16,12 @@ public class MoveQueue {
 	private GameMap gameMap;
 	private Map<Integer, Direction[]> map;
 	private Map<Integer, Direction> resolved;
-	private Set<Vector> unsafe;
+	private boolean[][] unsafe;
 	public MoveQueue(GameMap gameMap) {
 		this.gameMap = gameMap;
 		this.map = new HashMap<Integer, Direction[]>();
 		this.resolved = new HashMap<Integer, Direction>();
-		this.unsafe = new HashSet<Vector>();
+		this.unsafe = new boolean[gameMap.getWidth()][gameMap.getHeight()];
 	}
 	public void move(int shipId, Direction... directions) {
 		map.put(shipId, directions);
@@ -32,14 +30,20 @@ public class MoveQueue {
 		this.move(ship.getShipId(), directions);
 	}
 	public void markUnsafe(Vector vector) {
-		unsafe.add(vector);
+		unsafe[vector.getX()][vector.getY()] = true;
+	}
+	public boolean isUnsafe(Vector vector) {
+		return unsafe[vector.getX()][vector.getY()];
+	}
+	public boolean isSafe(Vector vector) {
+		return !isUnsafe(vector);
 	}
 	public void resolveCollisions() {
 		// TODO use resolved HashMap
 		for (int shipId : map.keySet()) {
 			Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
 			// Marks square as unsafe
-			unsafe.add(ship.getLocation().add(map.get(shipId)[0], gameMap));
+			markUnsafe(ship.getLocation().add(map.get(shipId)[0], gameMap));
 		}
 	}
 	public void resolveCollisions(List<Integer> shipPriorities) {
@@ -48,7 +52,7 @@ public class MoveQueue {
 		for (int shipId : shipPriorities) {
 			Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
 			if (ship.getHalite() < gameMap.getHalite(ship.getLocation()) / GameConstants.MOVE_COST_RATIO) {
-				unsafe.add(ship.getLocation());
+				markUnsafe(ship.getLocation());
 				resolved.put(shipId, Direction.STILL);
 			}
 		}
@@ -65,22 +69,22 @@ public class MoveQueue {
 			findValidDirection: {
 				for (Direction direction : map.get(shipId)) {
 					Vector current = ship.getLocation().add(direction, gameMap);
-					if (!unsafe.contains(current)) {
-						unsafe.add(current);
+					if (!isUnsafe(current)) {
+						markUnsafe(current);
 						resolved.put(shipId, direction);
 						break findValidDirection;
 					}
 				}
 				Vector current = ship.getLocation();
-				if (!unsafe.contains(current)) {
-					unsafe.add(current);
+				if (!isUnsafe(current)) {
+					markUnsafe(current);
 					resolved.put(shipId, Direction.STILL);
 					break findValidDirection;
 				}
 				for (Direction direction : Direction.getRandomCardinalPermutation()) {
 					current = ship.getLocation().add(direction, gameMap);
-					if (!unsafe.contains(current)) {
-						unsafe.add(current);
+					if (!isUnsafe(current)) {
+						markUnsafe(current);
 						resolved.put(shipId, direction);
 						break findValidDirection;
 					}
@@ -89,9 +93,6 @@ public class MoveQueue {
 				//throw new IllegalStateException("No Direction Found");
 			}
 		}
-	}
-	public boolean isSafe(Vector vector) {
-		return !unsafe.contains(vector);
 	}
 	public void send() {
 		for (Entry<Integer, Direction> entry : resolved.entrySet()) {
