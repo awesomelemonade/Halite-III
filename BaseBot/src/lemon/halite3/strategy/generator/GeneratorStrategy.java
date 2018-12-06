@@ -66,8 +66,10 @@ public class GeneratorStrategy implements Strategy {
 					}
 					for (Ship ship : player.getShips().values()) {
 						if (ship.getHalite() < GameConstants.MAX_HALITE * 4 / 5) {
-							for (Direction direction : Direction.values()) {
-								moveQueue.markUnsafe(ship.getLocation().add(direction, gameMap));
+							if (ship.getLocation().getManhattanDistance(gameMap.getMyPlayer().getShipyardLocation(), gameMap) > 1) { // Prevent shipyard blocking - TODO: prevent dropoff blocking
+								for (Direction direction : Direction.values()) {
+									moveQueue.markUnsafe(ship.getLocation().add(direction, gameMap));
+								}
 							}
 						}
 					}
