@@ -76,7 +76,6 @@ public class GeneratorStrategy implements Strategy {
 				}
 				Map<Vector, Integer> mineMap = new HashMap<Vector, Integer>();
 				// updates shipPriority
-				DebugLog.log("Updating Ship Priorities...");
 				try (Benchmark b2 = new Benchmark("Updated Ship Priorities: %ss")) {
 					Ship shipyardCandidate = gameMap.getShip(gameMap.getMyPlayer().getShipyardLocation());
 					if (shipyardCandidate != null) {
@@ -96,7 +95,6 @@ public class GeneratorStrategy implements Strategy {
 				try (Benchmark b3 = new Benchmark("Executed Ships: %ss")) {
 					for (int shipId : shipPriorities) {
 						Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
-						DebugLog.log("Executing Ship: " + ship.toString());
 						// Check if the ship's only option is Direction.STILL
 						if (ship.getHalite() < gameMap.getHalite(ship.getLocation()) / GameConstants.MOVE_COST_RATIO) {
 							moveQueue.move(ship, Direction.STILL);
@@ -126,7 +124,7 @@ public class GeneratorStrategy implements Strategy {
 						while (!queue.isEmpty()) {
 							Vector vector = queue.poll();
 							if ((lastPlan.containsKey(shipId) && vector.getManhattanDistance(lastPlan.get(shipId), gameMap) < 3) || 
-									ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation()) || 
+									((!isLowOnTime(benchmark, 50)) && ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation())) || 
 									((!isLowOnTime(benchmark, 200)) && (Math.random() < (0.05 - 2 * ((gameMap.getWidth() >= 56 ? 1 : 0) + (gameMap.getMyPlayer().getShips().size() >= 30 ? 1 : 0)))))) {
 								// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
 								for (int i = 0; i < 8; ++i) {
