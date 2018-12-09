@@ -1,6 +1,7 @@
 package lemon.halite3.visualizer;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.MouseInfo;
 import java.util.Map.Entry;
@@ -75,7 +76,8 @@ public class Renderer extends JPanel {
 				g.setColor(new Color(0, 0, 255, Math.min(255, (int)(255 * (halite[i][j] / 1000.0)))));
 				g.fillRect(i * tileWidth, j * tileHeight, tileWidth, tileHeight);
 				g.setColor(Color.GRAY);
-				g.drawString(halite[i][j] + "", i * tileWidth + 30, j * tileHeight + tileHeight);
+				g.setFont(new Font("Tahoma", Font.PLAIN, 8));
+				g.drawString(halite[i][j] + "", i * tileWidth + 16, j * tileHeight + tileHeight);
 			}
 		}
 	}
@@ -89,7 +91,6 @@ public class Renderer extends JPanel {
 			g.setColor(new Color(255, 0, 0, (int) (entry.getValue() / 1000.0 * 255)));
 			g.fillRect(entry.getKey().getX() * tileWidth, entry.getKey().getY() * tileHeight, tileWidth, tileHeight);
 		}
-		System.out.println("Count: " + plan.getCount());
 	}
 	public void renderScores(Graphics g) {
 		int tileWidth = this.getWidth() / halite.length;
@@ -99,6 +100,7 @@ public class Renderer extends JPanel {
 				g.setColor(new Color(0, 255, 0, Math.min(255, (int)(255 * (scores[i][j] / 1000.0)))));
 				g.fillRect(i * tileWidth, j * tileHeight, tileWidth, tileHeight);
 				g.setColor(Color.BLACK);
+				g.setFont(new Font("Tahoma", Font.PLAIN, 8));
 				g.drawString(scores[i][j] + "", i * tileWidth, j * tileHeight + tileHeight);
 			}
 		}

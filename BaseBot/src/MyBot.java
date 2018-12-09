@@ -36,7 +36,7 @@ public class MyBot {
 			DebugLog.log(String.format("Initialization - %s - %d", READABLE_DATE_FORMAT.format(currentDate), gameMap.getMyPlayerId()));
 			Strategy strategy = new GeneratorStrategy();
 			DebugLog.log(String.format("Executing Strategy: %s - Timeout: %f", strategy.getClass().getSimpleName(), timeout));
-			gameMap.ready(strategy.init(gameMap, timeout));
+			gameMap.ready(strategy.init(gameMap, debuglog, timeout));
 			strategy.run(gameMap);
 		}
 		Scanner scanner = new Scanner(System.in);

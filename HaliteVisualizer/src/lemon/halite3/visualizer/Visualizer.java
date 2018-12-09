@@ -106,8 +106,7 @@ public class Visualizer {
 					}
 					paths[i][j] = path;
 					scores[i][j] = Integer.parseInt(tokenizer.nextToken());
-					int count = Integer.parseInt(tokenizer.nextToken());
-					minePlans[i][j] = new MinePlan(quad, mineMap, count);
+					minePlans[i][j] = new MinePlan(quad, mineMap);
 				}
 			}
 			reader.close();
@@ -119,20 +118,15 @@ public class Visualizer {
 	static class MinePlan {
 		private Quad quad;
 		private Map<Vector, Integer> mineMap;
-		private int count;
-		public MinePlan(Quad quad, Map<Vector, Integer> mineMap, int count) {
+		public MinePlan(Quad quad, Map<Vector, Integer> mineMap) {
 			this.quad = quad;
 			this.mineMap = mineMap;
-			this.count = count;
 		}
 		public Quad getQuad() {
 			return quad;
 		}
 		public Map<Vector, Integer> getMineMap(){
 			return mineMap;
-		}
-		public int getCount() {
-			return count;
 		}
 	}
 }

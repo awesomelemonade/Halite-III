@@ -29,19 +29,22 @@ import lemon.halite3.util.Vector;
 
 public class GeneratorStrategy implements Strategy {
 	private GameMap gameMap;
+	private boolean debug;
 	private double timeout;
 	@Override
-	public String init(GameMap gameMap, double timeout) {
+	public String init(GameMap gameMap, boolean debug, double timeout) {
 		// Generator Strategy because MinePlans are now generator-type rather than statically defined based off squares. Therefore, thresholds can be more flexible.
 		this.gameMap = gameMap;
+		this.debug = debug;
 		this.timeout = timeout;
 		Vector.init(gameMap);
 		DP.init(gameMap);
 		Navigation.init(gameMap);
 		return "GeneratorStrategy";
 	}
+	private long stateSaverTime = 0;
 	public boolean isLowOnTime(Benchmark benchmark, double millis) {
-		return ((double) benchmark.peek()) / 1000000000.0 > (timeout - millis);
+		return ((double) (benchmark.peek() - stateSaverTime)) / 1000000000.0 > (timeout - millis);
 	}
 	@Override
 	public void run(GameMap gameMap) {
@@ -52,6 +55,7 @@ public class GeneratorStrategy implements Strategy {
 		Heuristics.init(gameMap);
 		while (true) {
 			gameMap.update();
+			stateSaverTime = 0;
 			try (Benchmark benchmark = new Benchmark("Benchmark: %ss")) {
 				DebugLog.log("New Turn: " + gameMap.getCurrentTurn() + " - numShips=" + gameMap.getMyPlayer().getShips().size() + 
 						" ***********************************************");
@@ -95,11 +99,6 @@ public class GeneratorStrategy implements Strategy {
 				try (Benchmark b3 = new Benchmark("Executed Ships: %ss")) {
 					for (int shipId : shipPriorities) {
 						Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
-						// Check if the ship's only option is Direction.STILL
-						if (ship.getHalite() < gameMap.getHalite(ship.getLocation()) / GameConstants.MOVE_COST_RATIO) {
-							moveQueue.move(ship, Direction.STILL);
-							continue;
-						}
 						int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite() - 50;
 						if (haliteNeeded <= 0) {
 							returningShips.add(ship.getShipId());
@@ -112,6 +111,9 @@ public class GeneratorStrategy implements Strategy {
 								continue;
 							}
 						}
+						// State Saver Info
+						Map<Vector, Quad> quads = new HashMap<Vector, Quad>();
+						Map<Vector, HeuristicsPlan> plans = new HashMap<Vector, HeuristicsPlan>();
 						// BFS search for mine target
 						Deque<Vector> queue = new ArrayDeque<Vector>();
 						Set<Vector> visited = new HashSet<Vector>();
@@ -121,8 +123,24 @@ public class GeneratorStrategy implements Strategy {
 						Vector bestVector = null;
 						queue.add(ship.getLocation());
 						visited.add(ship.getLocation());
+						boolean condition = debug && shipId == shipPriorities.get(shipPriorities.size() - 1);
 						while (!queue.isEmpty()) {
 							Vector vector = queue.poll();
+							if (condition) {
+								try (Benchmark b = new Benchmark()){
+									for (int i = 0; i < 8; ++i) {
+										Quad quad = getQuad(vector, i);
+										if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) {
+											Set<Vector> vectors = getVectors(mineMap, quad, haliteNeeded);
+											HeuristicsPlan plan = getPlan(mineMap, vectors, GameConstants.MAX_HALITE - 50, ship, Integer.MAX_VALUE);
+											quads.put(vector, quad);
+											plans.put(vector, plan);
+											break;
+										}
+									}
+									stateSaverTime += b.peek();
+								}
+							}
 							if ((lastPlan.containsKey(shipId) && vector.getManhattanDistance(lastPlan.get(shipId), gameMap) < 3) || 
 									((!isLowOnTime(benchmark, 50)) && ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation())) || 
 									((!isLowOnTime(benchmark, 200)) && (Math.random() < (0.05 - 2 * ((gameMap.getWidth() >= 56 ? 1 : 0) + (gameMap.getMyPlayer().getShips().size() >= 30 ? 1 : 0)))))) {
@@ -160,6 +178,15 @@ public class GeneratorStrategy implements Strategy {
 								mineMap.put(vector, mineMap.getOrDefault(vector, 0) + bestPlan.getMineMap().get(vector));
 							}
 							handleMicro(moveQueue, ship, bestPlan, bestQuad);
+						}
+						// State Saver
+						if (bestPlan != null && condition) {
+							try (Benchmark b = new Benchmark()) {
+								String filename = String.format("gamestates/lol%d-%03d-%03d", gameMap.getMyPlayerId(), gameMap.getCurrentTurn(), shipId);
+								StateSaver.save(filename, ship.getLocation(), bestVector, gameMap, mineMap, plans, quads);
+								stateSaverTime += b.peek();
+								DebugLog.log(String.format("State Saver Time: %ss", Double.toString(((double) stateSaverTime) / 1000000000.0)));
+							}
 						}
 					}
 				}
