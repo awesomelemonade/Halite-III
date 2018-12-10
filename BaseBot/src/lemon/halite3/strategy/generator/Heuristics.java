@@ -20,7 +20,7 @@ public class Heuristics {
 	}
 	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end, Map<Vector, Integer> mineMap, int cutoff) {
 		List<Vector> order = new ArrayList<Vector>();
-		int totalDistance = 1; // Account for adding "current" into totalPath at the end
+		int totalDistance = 0;
 		Vector current = start;
 		order.add(current);
 		while (!vectors.isEmpty()) {
@@ -33,25 +33,30 @@ public class Heuristics {
 					bestVector = vector;
 				}
 			}
-			order.add(bestVector);
 			totalDistance += bestDistance;
 			if (totalDistance >= cutoff) {
 				return null;
 			}
+			order.add(bestVector);
 			vectors.remove(bestVector);
 			current = bestVector;
 		}
+		totalDistance += current.getManhattanDistance(end, gameMap);
+		if (totalDistance >= cutoff) {
+			return null;
+		}
+		order.add(end);
 		// Actually create path
 		List<Vector> totalPath = new ArrayList<Vector>();
 		for (int i = 0; i < order.size() - 1; ++i) {
 			addPath(order.get(i), order.get(i + 1), totalPath);
 		}
-		totalPath.add(current);
+		totalPath.add(order.get(order.size() - 1));
+		// Calculate HeuristicsPlan
 		HeuristicsPlan plan = new HeuristicsPlan(totalPath);
 		if (!heuristic(totalPath, halite, haliteNeeded, plan, mineMap, cutoff)) {
 			return null;
 		}
-		plan.addTotalTurns(current.getManhattanDistance(end, gameMap));
 		return plan;
 	}
 	public static boolean heuristic(List<Vector> path, int halite, int haliteNeeded, HeuristicsPlan plan, Map<Vector, Integer> mineMap, int cutoff) {

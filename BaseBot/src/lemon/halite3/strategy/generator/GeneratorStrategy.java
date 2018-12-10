@@ -278,7 +278,8 @@ public class GeneratorStrategy implements Strategy {
 		}
 	}
 	public void handleMicro(MoveQueue moveQueue, Ship ship, HeuristicsPlan plan, Quad quad) {
-		if (plan.getMineCounts().getOrDefault(ship.getLocation(), 0) > 0) {
+		if (plan.getMineCounts().getOrDefault(ship.getLocation(), 0) > 0 && 
+				(ship.getHalite() + (gameMap.getHalite(ship.getLocation()) + GameConstants.EXTRACT_RATIO - 1) / GameConstants.EXTRACT_RATIO <= GameConstants.MAX_HALITE)) {
 			moveQueue.move(ship, Direction.STILL);
 		} else {
 			moveQueue.move(ship, ship.getLocation().getDirectionTo(plan.getTotalPath().get(1), gameMap));
