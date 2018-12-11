@@ -162,7 +162,7 @@ public class GeneratorStrategy implements Strategy {
 									for (Vector v : bestPlan.getMineMap().keySet()) {
 										mineMap.put(v, mineMap.getOrDefault(v, 0) + bestPlan.getMineMap().get(v));
 									}
-									handleMicro(moveQueue, ship, bestPlan, bestQuad);
+									handleMicro(moveQueue, ship, bestPlan);
 									break;
 								}
 							}
@@ -177,7 +177,6 @@ public class GeneratorStrategy implements Strategy {
 						Set<Vector> visited = new HashSet<Vector>();
 						HeuristicsPlan bestPlan = null;
 						int bestPlanScore = Integer.MAX_VALUE;
-						Quad bestQuad = null;
 						Vector bestVector = null;
 						queue.add(ship.getLocation());
 						visited.add(ship.getLocation());
@@ -201,7 +200,7 @@ public class GeneratorStrategy implements Strategy {
 							}
 							if ((lastPlan.containsKey(shipId) && vector.getManhattanDistance(lastPlan.get(shipId), gameMap) < 3) || 
 									((!isLowOnTime(benchmark, 50)) && ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation())) || 
-									((!isLowOnTime(benchmark, 200)) && (Math.random() < (0.05 - 2 * ((gameMap.getWidth() >= 56 ? 1 : 0) + (gameMap.getMyPlayer().getShips().size() >= 30 ? 1 : 0)))))) {
+									((!isLowOnTime(benchmark, 200)) && (Math.random() < (0.05 - 0.02 * ((gameMap.getWidth() >= 48 ? 1 : 0) + (gameMap.getMyPlayer().getShips().size() >= 20 ? 1 : 0)))))) {
 								// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
 								for (int i = 0; i < 8; ++i) {
 									Quad quad = getQuad(vector, i);
@@ -213,7 +212,6 @@ public class GeneratorStrategy implements Strategy {
 											if (score < bestPlanScore) {
 												bestPlan = plan;
 												bestPlanScore = score;
-												bestQuad = quad;
 												bestVector = vector;
 											}
 										}
@@ -235,7 +233,7 @@ public class GeneratorStrategy implements Strategy {
 							for (Vector vector : bestPlan.getMineMap().keySet()) {
 								mineMap.put(vector, mineMap.getOrDefault(vector, 0) + bestPlan.getMineMap().get(vector));
 							}
-							handleMicro(moveQueue, ship, bestPlan, bestQuad);
+							handleMicro(moveQueue, ship, bestPlan);
 						}
 						// State Saver
 						if (bestPlan != null && condition) {
@@ -264,7 +262,7 @@ public class GeneratorStrategy implements Strategy {
 			}
 		}
 	}
-	public void handleMicro(MoveQueue moveQueue, Ship ship, HeuristicsPlan plan, Quad quad) {
+	public void handleMicro(MoveQueue moveQueue, Ship ship, HeuristicsPlan plan) {
 		if (plan.getMineCounts().getOrDefault(ship.getLocation(), 0) > 0 && 
 				(ship.getHalite() + Heuristics.getMined(gameMap.getHalite(ship.getLocation())) <= GameConstants.MAX_HALITE)) {
 			moveQueue.move(ship, Direction.STILL);
