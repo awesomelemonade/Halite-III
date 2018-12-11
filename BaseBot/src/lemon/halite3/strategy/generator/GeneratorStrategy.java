@@ -35,7 +35,6 @@ public class GeneratorStrategy implements Strategy {
 	private PriorityQueue<Vector> shipyardQueue;
 	@Override
 	public String init(GameMap gameMap, boolean debug, double timeout) {
-		// Generator Strategy because MinePlans are now generator-type rather than statically defined based off squares. Therefore, thresholds can be more flexible.
 		this.gameMap = gameMap;
 		this.debug = debug;
 		this.timeout = timeout;
@@ -102,7 +101,6 @@ public class GeneratorStrategy implements Strategy {
 	public void run(GameMap gameMap) {
 		// shipPriority can be optimized using a balanced tree to have O(log(n)) reordering rather than O(n)
 		List<Integer> shipPriorities = new ArrayList<Integer>(); // In order of the last time they dropped off halite
-		Set<Integer> returningShips = new HashSet<Integer>();
 		Map<Integer, Vector> lastPlan = new HashMap<Integer, Vector>();
 		while (true) {
 			gameMap.update();
@@ -150,7 +148,7 @@ public class GeneratorStrategy implements Strategy {
 				try (Benchmark b3 = new Benchmark("Executed Ships: %ss")) {
 					for (int shipId : shipPriorities) {
 						Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
-						if (ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation())) {
+						if (ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation())) { // Special case for ships just spawned or just dropped off halite
 							updateShipyardScores(mineMap, 50);
 							// Execute plan
 							Vector vector = shipyardQueue.peek();
@@ -171,17 +169,6 @@ public class GeneratorStrategy implements Strategy {
 							continue;
 						}
 						int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite() - 50;
-						if (haliteNeeded <= 0) {
-							returningShips.add(ship.getShipId());
-						}
-						if (returningShips.contains(ship.getShipId())) {
-							if (ship.getHalite() <= GameConstants.MAX_HALITE / 5) {
-								returningShips.remove(ship.getShipId());
-							} else {
-								moveQueue.move(ship, Navigation.navigate(ship.getLocation(), gameMap.getMyPlayer().getShipyardLocation())); // TODO dropoffs
-								continue;
-							}
-						}
 						// State Saver Info
 						Map<Vector, Quad> quads = new HashMap<Vector, Quad>();
 						Map<Vector, HeuristicsPlan> plans = new HashMap<Vector, HeuristicsPlan>();
@@ -279,7 +266,7 @@ public class GeneratorStrategy implements Strategy {
 	}
 	public void handleMicro(MoveQueue moveQueue, Ship ship, HeuristicsPlan plan, Quad quad) {
 		if (plan.getMineCounts().getOrDefault(ship.getLocation(), 0) > 0 && 
-				(ship.getHalite() + (gameMap.getHalite(ship.getLocation()) + GameConstants.EXTRACT_RATIO - 1) / GameConstants.EXTRACT_RATIO <= GameConstants.MAX_HALITE)) {
+				(ship.getHalite() + Heuristics.getMined(gameMap.getHalite(ship.getLocation())) <= GameConstants.MAX_HALITE)) {
 			moveQueue.move(ship, Direction.STILL);
 		} else {
 			moveQueue.move(ship, ship.getLocation().getDirectionTo(plan.getTotalPath().get(1), gameMap));
