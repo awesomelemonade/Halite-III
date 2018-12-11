@@ -20,6 +20,9 @@ public class Heuristics {
 	}
 	public static HeuristicsPlan execute(Vector start, Vector end, int halite, int haliteNeeded, Map<Vector, Integer> mineMap, int cutoff) {
 		List<Vector> path = getPath(start, end, cutoff);
+		if (path == null) {
+			return null;
+		}
 		return getPlan(path, halite, haliteNeeded, mineMap, cutoff);
 	}
 	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end, Map<Vector, Integer> mineMap, int cutoff) {
@@ -126,6 +129,7 @@ public class Heuristics {
 			int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0) - tempMineMap.getOrDefault(mineLocation, 0);
 			if (haliteLeft <= 0) {
 				plan.addTotalTurns(9999);
+				plan.setMineMap(tempMineMap);
 				return plan.getTotalTurns() < cutoff;
 			}
 			int mined = getMined(haliteLeft);
