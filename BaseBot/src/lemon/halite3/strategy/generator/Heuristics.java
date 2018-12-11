@@ -24,6 +24,9 @@ public class Heuristics {
 	}
 	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end, Map<Vector, Integer> mineMap, int cutoff) {
 		List<Vector> path = getPath(start, vectors, end, cutoff);
+		if (path == null) {
+			return null;
+		}
 		return getPlan(path, halite, haliteNeeded, mineMap, cutoff);
 	}
 	public static List<Vector> getPath(Vector start, Vector end, int cutoff){
