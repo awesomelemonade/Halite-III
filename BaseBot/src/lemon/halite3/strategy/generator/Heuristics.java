@@ -18,9 +18,13 @@ public class Heuristics {
 	public static void init(GameMap gameMap) {
 		Heuristics.gameMap = gameMap;
 	}
+	public static HeuristicsPlan execute(Vector start, Vector end, int halite, int haliteNeeded, Map<Vector, Integer> mineMap, int cutoff) {
+		List<Vector> path = getPath(start, end, cutoff);
+		return getPlan(path, halite, haliteNeeded, mineMap, cutoff);
+	}
 	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end, Map<Vector, Integer> mineMap, int cutoff) {
-		List<Vector> totalPath = getPath(start, vectors, end, cutoff);
-		return getPlan(totalPath, halite, haliteNeeded, mineMap, cutoff);
+		List<Vector> path = getPath(start, vectors, end, cutoff);
+		return getPlan(path, halite, haliteNeeded, mineMap, cutoff);
 	}
 	public static List<Vector> getPath(Vector start, Vector end, int cutoff){
 		if (start.getManhattanDistance(end, gameMap) >= cutoff) {

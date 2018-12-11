@@ -175,8 +175,8 @@ public class GeneratorStrategy implements Strategy {
 						// BFS search for mine target
 						Deque<Vector> queue = new ArrayDeque<Vector>();
 						Set<Vector> visited = new HashSet<Vector>();
-						HeuristicsPlan bestPlan = null;
-						int bestPlanScore = Integer.MAX_VALUE;
+						HeuristicsPlan bestPlan = Heuristics.execute(ship.getLocation(), gameMap.getMyPlayer().getShipyardLocation(),
+								ship.getHalite(), GameConstants.MAX_HALITE - 50, mineMap, Integer.MAX_VALUE);
 						Vector bestVector = null;
 						queue.add(ship.getLocation());
 						visited.add(ship.getLocation());
@@ -198,7 +198,7 @@ public class GeneratorStrategy implements Strategy {
 									stateSaverTime += b.peek();
 								}
 							}
-							if ((lastPlan.containsKey(shipId) && vector.getManhattanDistance(lastPlan.get(shipId), gameMap) < 3) || 
+							if ((lastPlan.containsKey(shipId) && lastPlan.get(shipId) != null && vector.getManhattanDistance(lastPlan.get(shipId), gameMap) < 3) || 
 									((!isLowOnTime(benchmark, 50)) && ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation())) || 
 									((!isLowOnTime(benchmark, 200)) && (Math.random() < (0.05 - 0.02 * ((gameMap.getWidth() >= 48 ? 1 : 0) + (gameMap.getMyPlayer().getShips().size() >= 20 ? 1 : 0)))))) {
 								// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
@@ -206,12 +206,10 @@ public class GeneratorStrategy implements Strategy {
 									Quad quad = getQuad(vector, i);
 									if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) { // Arbitrary threshold greater than haliteNeeded
 										Set<Vector> vectors = getVectors(mineMap, quad, haliteNeeded);
-										HeuristicsPlan plan = getPlan(mineMap, vectors, ship.getHalite(), GameConstants.MAX_HALITE - 50, ship.getLocation(), bestPlanScore);
+										HeuristicsPlan plan = getPlan(mineMap, vectors, ship.getHalite(), GameConstants.MAX_HALITE - 50, ship.getLocation(), bestPlan.getTotalTurns());
 										if (plan != null) {
-											int score = plan.getTotalTurns();
-											if (score < bestPlanScore) {
+											if (plan.getTotalTurns() < bestPlan.getTotalTurns()) {
 												bestPlan = plan;
-												bestPlanScore = score;
 												bestVector = vector;
 											}
 										}
