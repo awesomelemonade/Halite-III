@@ -265,7 +265,7 @@ public class GeneratorStrategy implements Strategy {
 				(ship.getHalite() + Heuristics.getMined(gameMap.getHalite(ship.getLocation())) <= GameConstants.MAX_HALITE)) {
 			moveQueue.move(ship, Direction.STILL);
 		} else {
-			moveQueue.move(ship, ship.getLocation().getDirectionTo(plan.getTotalPath().get(1), gameMap));
+			moveQueue.move(ship, ship.getLocation().getDirectionTo(plan.getTotalPath().get(1), gameMap), plan.getAlternateDirection());
 		}
 	}
 	public Set<Vector> getVectors(Map<Vector, Integer> mineMap, Quad quad, int haliteNeeded) {

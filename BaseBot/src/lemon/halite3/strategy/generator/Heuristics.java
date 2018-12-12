@@ -23,14 +23,29 @@ public class Heuristics {
 		if (path == null) {
 			return null;
 		}
-		return getPlan(path, halite, haliteNeeded, mineMap, cutoff);
+		HeuristicsPlan plan = getPlan(path, halite, haliteNeeded, mineMap, cutoff);
+		if (plan != null) {
+			Direction a = getDirection(start.getX(), end.getX(), gameMap.getWidth(), Direction.WEST, Direction.EAST);
+			Direction b = getDirection(start.getY(), end.getY(), gameMap.getHeight(), Direction.NORTH, Direction.SOUTH);
+			Direction planned = path.get(0).getDirectionTo(path.get(1), gameMap);
+			plan.setAlternateDirection(a == planned ? b : a);
+		}
+		return plan;
 	}
 	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end, Map<Vector, Integer> mineMap, int cutoff) {
-		List<Vector> path = getPath(start, vectors, end, cutoff);
-		if (path == null) {
+		List<Vector> order = getOrder(start, vectors, end, cutoff);
+		if (order == null) {
 			return null;
 		}
-		return getPlan(path, halite, haliteNeeded, mineMap, cutoff);
+		List<Vector> path = getPath(order);
+		HeuristicsPlan plan = getPlan(path, halite, haliteNeeded, mineMap, cutoff);
+		if (plan != null) {
+			Direction a = getDirection(start.getX(), order.get(1).getX(), gameMap.getWidth(), Direction.WEST, Direction.EAST);
+			Direction b = getDirection(start.getY(), order.get(1).getY(), gameMap.getHeight(), Direction.NORTH, Direction.SOUTH);
+			Direction planned = path.get(0).getDirectionTo(path.get(1), gameMap);
+			plan.setAlternateDirection(a == planned ? b : a);
+		}
+		return plan;
 	}
 	public static List<Vector> getPath(Vector start, Vector end, int cutoff){
 		if (start.getManhattanDistance(end, gameMap) >= cutoff) {
@@ -41,7 +56,7 @@ public class Heuristics {
 		path.add(end);
 		return path;
 	}
-	public static List<Vector> getPath(Vector start, Set<Vector> vectors, Vector end, int cutoff){
+	public static List<Vector> getOrder(Vector start, Set<Vector> vectors, Vector end, int cutoff){
 		List<Vector> order = new ArrayList<Vector>();
 		int totalDistance = 0;
 		Vector current = start;
@@ -69,7 +84,9 @@ public class Heuristics {
 			return null;
 		}
 		order.add(end);
-		// Actually create path
+		return order;
+	}
+	public static List<Vector> getPath(List<Vector> order){
 		List<Vector> totalPath = new ArrayList<Vector>();
 		for (int i = 0; i < order.size() - 1; ++i) {
 			addPath(order.get(i), order.get(i + 1), totalPath);
@@ -191,6 +208,7 @@ public class Heuristics {
 		private Map<Vector, Integer> mineCounts;
 		private Map<Vector, Integer> mineMap;
 		private int totalTurns;
+		private Direction alternateDirection;
 		public HeuristicsPlan(List<Vector> totalPath) {
 			this.totalPath = totalPath;
 			this.mineCounts = new HashMap<Vector, Integer>();
@@ -217,6 +235,12 @@ public class Heuristics {
 		}
 		public int getTotalTurns() {
 			return totalTurns;
+		}
+		public void setAlternateDirection(Direction direction) {
+			this.alternateDirection = direction;
+		}
+		public Direction getAlternateDirection() {
+			return alternateDirection;
 		}
 	}
 }
