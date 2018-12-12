@@ -28,7 +28,7 @@ public class Heuristics {
 			Direction a = getDirection(start.getX(), end.getX(), gameMap.getWidth(), Direction.WEST, Direction.EAST);
 			Direction b = getDirection(start.getY(), end.getY(), gameMap.getHeight(), Direction.NORTH, Direction.SOUTH);
 			Direction planned = path.get(0).getDirectionTo(path.get(1), gameMap);
-			plan.setAlternateDirection(a == planned ? b : a);
+			plan.setAlternateDirection(a == planned ? (start.getY() != end.getY() ? b : Direction.STILL) : (start.getX() != end.getX() ? a : Direction.STILL));
 		}
 		return plan;
 	}
@@ -43,7 +43,7 @@ public class Heuristics {
 			Direction a = getDirection(start.getX(), order.get(1).getX(), gameMap.getWidth(), Direction.WEST, Direction.EAST);
 			Direction b = getDirection(start.getY(), order.get(1).getY(), gameMap.getHeight(), Direction.NORTH, Direction.SOUTH);
 			Direction planned = path.get(0).getDirectionTo(path.get(1), gameMap);
-			plan.setAlternateDirection(a == planned ? b : a);
+			plan.setAlternateDirection(a == planned ? (start.getY() != order.get(1).getY() ? b : Direction.STILL) : (start.getX() != order.get(1).getX() ? a : Direction.STILL));
 		}
 		return plan;
 	}
