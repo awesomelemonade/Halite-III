@@ -168,7 +168,10 @@ public class GeneratorStrategy implements Strategy {
 							}
 							continue;
 						}
-						int haliteNeeded = GameConstants.MAX_HALITE - ship.getHalite() - 50;
+						// TODO: apply to shipyardQueue and shipyardScores
+						// TODO: Problem: does not account for halite droppings having enough for 950 capacity
+						int targetHalite = Math.max(Math.min(GameConstants.MAX_HALITE - 50, ((gameMap.getTotalHalite() / gameMap.getPlayers().length) / gameMap.getMyPlayer().getShips().size()) - 50), 0);
+						int haliteNeeded = targetHalite - ship.getHalite();
 						// State Saver Info
 						Map<Vector, Quad> quads = new HashMap<Vector, Quad>();
 						Map<Vector, HeuristicsPlan> plans = new HashMap<Vector, HeuristicsPlan>();
@@ -176,7 +179,7 @@ public class GeneratorStrategy implements Strategy {
 						Deque<Vector> queue = new ArrayDeque<Vector>();
 						Set<Vector> visited = new HashSet<Vector>();
 						HeuristicsPlan bestPlan = Heuristics.execute(ship.getLocation(), gameMap.getMyPlayer().getShipyardLocation(),
-								ship.getHalite(), GameConstants.MAX_HALITE - 50, mineMap, Integer.MAX_VALUE);
+								ship.getHalite(), targetHalite, mineMap, Integer.MAX_VALUE);
 						Vector bestVector = null;
 						queue.add(ship.getLocation());
 						visited.add(ship.getLocation());
@@ -189,7 +192,7 @@ public class GeneratorStrategy implements Strategy {
 										Quad quad = getQuad(vector, i);
 										if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) {
 											Set<Vector> vectors = getVectors(mineMap, quad, haliteNeeded);
-											HeuristicsPlan plan = getPlan(mineMap, vectors, ship.getHalite(), GameConstants.MAX_HALITE - 50, ship.getLocation(), Integer.MAX_VALUE);
+											HeuristicsPlan plan = getPlan(mineMap, vectors, ship.getHalite(), targetHalite, ship.getLocation(), Integer.MAX_VALUE);
 											quads.put(vector, quad);
 											plans.put(vector, plan);
 											break;
@@ -206,7 +209,7 @@ public class GeneratorStrategy implements Strategy {
 									Quad quad = getQuad(vector, i);
 									if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) { // Arbitrary threshold greater than haliteNeeded
 										Set<Vector> vectors = getVectors(mineMap, quad, haliteNeeded);
-										HeuristicsPlan plan = getPlan(mineMap, vectors, ship.getHalite(), GameConstants.MAX_HALITE - 50, ship.getLocation(), bestPlan.getTotalTurns());
+										HeuristicsPlan plan = getPlan(mineMap, vectors, ship.getHalite(), targetHalite, ship.getLocation(), bestPlan.getTotalTurns());
 										if (plan != null) {
 											if (plan.getTotalTurns() < bestPlan.getTotalTurns()) {
 												bestPlan = plan;
