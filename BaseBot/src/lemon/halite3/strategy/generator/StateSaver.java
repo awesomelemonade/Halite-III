@@ -13,6 +13,9 @@ import lemon.halite3.util.Vector;
 
 public class StateSaver {
 	public static void save(String filename, Vector shipLocation, Vector bestPlan, GameMap gameMap, Map<Vector, Integer> mineMap, Map<Vector, HeuristicsPlan> plans, Map<Vector, Quad> quads) {
+		if (bestPlan == null) {
+			return;
+		}
 		try {
 			PrintWriter writer = new PrintWriter(new FileWriter(filename));
 			writer.println(shipLocation.getX() + " " + shipLocation.getY());

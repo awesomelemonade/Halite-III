@@ -13,6 +13,7 @@ public class GameMap {
 	private Ship[][] ships;
 	private int[][] lastUpdated; // Tracked for ships
 	private Dropoff[][] dropoffs;
+	private int totalHalite;
 	public void parseStart() {
 		StringTokenizer infoTokenizer = new StringTokenizer(Networking.readLine());
 		numPlayers = Integer.parseInt(infoTokenizer.nextToken());
@@ -30,10 +31,12 @@ public class GameMap {
 		this.ships = new Ship[width][height];
 		this.lastUpdated = new int[width][height];
 		this.currentTurn = -1;
+		this.totalHalite = 0;
 		for (int i = 0; i < width; ++i) {
 			StringTokenizer tokenizer = new StringTokenizer(Networking.readLine());
 			for (int j = 0; j < height; ++j) {
 				this.halite[j][i] = Integer.parseInt(tokenizer.nextToken());
+				this.totalHalite += this.halite[j][i];
 			}
 		}
 	}
@@ -50,7 +53,11 @@ public class GameMap {
 		int updateCount = Integer.parseInt(Networking.readLine());
 		for (int i = 0; i < updateCount; ++i) {
 			StringTokenizer tokenizer = new StringTokenizer(Networking.readLine());
-			halite[Integer.parseInt(tokenizer.nextToken())][Integer.parseInt(tokenizer.nextToken())] = Integer.parseInt(tokenizer.nextToken());
+			int x = Integer.parseInt(tokenizer.nextToken());
+			int y = Integer.parseInt(tokenizer.nextToken());
+			int newHalite = Integer.parseInt(tokenizer.nextToken());
+			this.totalHalite += (newHalite - halite[x][y]);
+			halite[x][y] = newHalite;
 		}
 		for (GamePlayer player : players) {
 			for (Ship ship : player.getShips().values()) {
@@ -94,5 +101,8 @@ public class GameMap {
 	}
 	public int getCurrentTurn() {
 		return currentTurn;
+	}
+	public int getTotalHalite() {
+		return totalHalite;
 	}
 }

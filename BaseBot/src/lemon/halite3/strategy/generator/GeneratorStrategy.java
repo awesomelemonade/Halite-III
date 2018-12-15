@@ -97,6 +97,13 @@ public class GeneratorStrategy implements Strategy {
 	public boolean isLowOnTime(Benchmark benchmark, double millis) {
 		return ((double) (benchmark.peek() - stateSaverTime)) / 1000000000.0 > (timeout - millis);
 	}
+	public int getTotalShips() {
+		int ships = 0;
+		for (GamePlayer player : gameMap.getPlayers()) {
+			ships += player.getShips().size();
+		}
+		return ships;
+	}
 	@Override
 	public void run(GameMap gameMap) {
 		// shipPriority can be optimized using a balanced tree to have O(log(n)) reordering rather than O(n)
@@ -170,7 +177,7 @@ public class GeneratorStrategy implements Strategy {
 						}
 						// TODO: apply to shipyardQueue and shipyardScores
 						// TODO: Problem: does not account for halite droppings having enough for 950 capacity
-						int targetHalite = Math.max(Math.min(GameConstants.MAX_HALITE - 50, ((gameMap.getTotalHalite() / gameMap.getPlayers().length) / gameMap.getMyPlayer().getShips().size()) - 50), 0);
+						int targetHalite = Math.max(Math.min(GameConstants.MAX_HALITE - 50, (gameMap.getTotalHalite() / getTotalShips())), 0);
 						int haliteNeeded = targetHalite - ship.getHalite();
 						// State Saver Info
 						Map<Vector, Quad> quads = new HashMap<Vector, Quad>();
