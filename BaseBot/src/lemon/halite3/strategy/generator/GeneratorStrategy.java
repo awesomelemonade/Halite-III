@@ -57,7 +57,7 @@ public class GeneratorStrategy implements Strategy {
 		for (int i = 0; i < gameMap.getWidth(); ++i) {
 			for (int j = 0; j < gameMap.getHeight(); ++j) {
 				Vector vector = Vector.getInstance(i, j);
-				getPlan(vector, mineMap, 0, targetHalite, Integer.MAX_VALUE).ifPresent(plan -> {
+				getPlan(vector, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, targetHalite, Integer.MAX_VALUE).ifPresent(plan -> {
 					shipyardScores.put(vector, plan.getTotalTurns());
 					shipyardQueue.add(vector);
 				});
@@ -65,13 +65,13 @@ public class GeneratorStrategy implements Strategy {
 		}
 		return "GeneratorStrategy";
 	}
-	public Optional<HeuristicsPlan> getPlan(Vector vector, Map<Vector, Integer> mineMap, int currentHalite, int targetHalite, int cutoff) {
+	public Optional<HeuristicsPlan> getPlan(Vector vector, Map<Vector, Integer> mineMap, Vector location, int currentHalite, int targetHalite, int cutoff) {
 		int haliteNeeded = targetHalite - currentHalite;
 		for (int k = 0; k < 8; ++k) {
 			Quad quad = getQuad(vector, k);
 			if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) {
 				Set<Vector> vectors = getVectors(mineMap, quad, haliteNeeded);
-				HeuristicsPlan plan = Heuristics.execute(gameMap.getMyPlayer().getShipyardLocation(),
+				HeuristicsPlan plan = Heuristics.execute(location,
 						currentHalite, targetHalite, vectors, gameMap.getMyPlayer().getShipyardLocation(), mineMap, cutoff);
 				if (plan == null) {
 					return Optional.empty();
@@ -88,7 +88,7 @@ public class GeneratorStrategy implements Strategy {
 			List<Vector> updated = new ArrayList<Vector>();
 			for (int i = 0; i < num; ++i) {
 				Vector polled = shipyardQueue.poll();
-				HeuristicsPlan plan = getPlan(polled, mineMap, 0, targetHalite, Integer.MAX_VALUE).get();
+				HeuristicsPlan plan = getPlan(polled, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, targetHalite, Integer.MAX_VALUE).get();
 				shipyardScores.put(polled, plan.getTotalTurns());
 				updated.add(polled);
 			}
@@ -159,7 +159,7 @@ public class GeneratorStrategy implements Strategy {
 				}
 				// TODO: apply to shipyardQueue and shipyardScores
 				// TODO: Problem: does not account for halite droppings having enough for 950 capacity
-				int targetHalite = Math.max(Math.min(GameConstants.MAX_HALITE - 50, (gameMap.getTotalHalite() / getTotalShips())), 0);
+				int targetHalite = Math.max(Math.min(GameConstants.MAX_HALITE - 50, (gameMap.getTotalHalite() / Math.max(getTotalShips(), 1))), 0);
 				try (Benchmark b3 = new Benchmark("Executed Ships: %ss")) {
 					for (int shipId : shipPriorities) {
 						Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
@@ -167,7 +167,7 @@ public class GeneratorStrategy implements Strategy {
 							updateShipyardScores(mineMap, targetHalite, 50);
 							// Execute plan
 							Vector vector = shipyardQueue.peek();
-							HeuristicsPlan plan = getPlan(vector, mineMap, 0, targetHalite, Integer.MAX_VALUE).get();
+							HeuristicsPlan plan = getPlan(vector, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, targetHalite, Integer.MAX_VALUE).get();
 							lastPlan.put(shipId, vector);
 							// Apply bestPlan's mineMap
 							for (Vector v : plan.getMineMap().keySet()) {
@@ -187,12 +187,12 @@ public class GeneratorStrategy implements Strategy {
 						Vector bestVector = null;
 						queue.add(ship.getLocation());
 						visited.add(ship.getLocation());
-						boolean condition = debug && shipId == shipPriorities.get(shipPriorities.size() - 1);
+						boolean condition = debug && shipId == shipPriorities.get(shipPriorities.size() - 1) && false;
 						while (!queue.isEmpty()) {
 							Vector vector = queue.poll();
 							if (condition) {
 								try (Benchmark b = new Benchmark()){
-									getPlan(vector, mineMap, ship.getHalite(), targetHalite, Integer.MAX_VALUE).ifPresent(plan -> {
+									getPlan(vector, mineMap, ship.getLocation(), ship.getHalite(), targetHalite, Integer.MAX_VALUE).ifPresent(plan -> {
 										//quads.put(vector, quad);
 										plans.put(vector, plan);
 									});
@@ -203,7 +203,7 @@ public class GeneratorStrategy implements Strategy {
 									((!isLowOnTime(benchmark, 50)) && ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation())) || 
 									((!isLowOnTime(benchmark, 200)) && (Math.random() < (0.05 - 0.02 * ((gameMap.getWidth() >= 48 ? 1 : 0) + (gameMap.getMyPlayer().getShips().size() >= 20 ? 1 : 0)))))) {
 								// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
-								Optional<HeuristicsPlan> plan = getPlan(vector, mineMap, ship.getHalite(), targetHalite, bestPlan.getTotalTurns());
+								Optional<HeuristicsPlan> plan = getPlan(vector, mineMap, ship.getLocation(), ship.getHalite(), targetHalite, bestPlan.getTotalTurns());
 								if (plan.isPresent()) {
 									assert plan.get().getTotalTurns() < bestPlan.getTotalTurns();
 									bestPlan = plan.get();
