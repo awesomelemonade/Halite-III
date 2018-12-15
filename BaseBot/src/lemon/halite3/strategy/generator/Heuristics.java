@@ -32,6 +32,20 @@ public class Heuristics {
 		}
 		return plan;
 	}
+	public static HeuristicsPlan execute(Vector start, Vector middle, Vector end, int halite, int haliteNeeded, Map<Vector, Integer> mineMap, int cutoff) {
+		List<Vector> path = getPath(start, middle, end, cutoff);
+		if (path == null) {
+			return null;
+		}
+		HeuristicsPlan plan = getPlan(path, halite, haliteNeeded, mineMap, cutoff);
+		if (plan != null) {
+			Direction a = getDirection(start.getX(), middle.getX(), gameMap.getWidth(), Direction.WEST, Direction.EAST);
+			Direction b = getDirection(start.getY(), middle.getY(), gameMap.getHeight(), Direction.NORTH, Direction.SOUTH);
+			Direction planned = path.get(0).getDirectionTo(path.get(1), gameMap);
+			plan.setAlternateDirection(a == planned ? (start.getY() != middle.getY() ? b : Direction.STILL) : (start.getX() != middle.getX() ? a : Direction.STILL));
+		}
+		return plan;
+	}
 	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end, Map<Vector, Integer> mineMap, int cutoff) {
 		List<Vector> order = getOrder(start, vectors, end, cutoff);
 		if (order == null) {
@@ -53,6 +67,16 @@ public class Heuristics {
 		}
 		List<Vector> path = new ArrayList<Vector>();
 		addPath(start, end, path);
+		path.add(end);
+		return path;
+	}
+	public static List<Vector> getPath(Vector start, Vector middle, Vector end, int cutoff){
+		if (start.getManhattanDistance(middle, gameMap) + middle.getManhattanDistance(end, gameMap) >= cutoff) {
+			return null;
+		}
+		List<Vector> path = new ArrayList<Vector>();
+		addPath(start, middle, path);
+		addPath(middle, end, path);
 		path.add(end);
 		return path;
 	}

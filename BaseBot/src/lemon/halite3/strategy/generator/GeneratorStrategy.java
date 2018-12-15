@@ -66,6 +66,16 @@ public class GeneratorStrategy implements Strategy {
 		return "GeneratorStrategy";
 	}
 	public Optional<HeuristicsPlan> getPlan(Vector vector, Map<Vector, Integer> mineMap, Vector location, int currentHalite, int targetHalite, int cutoff) {
+		if (location.equals(vector) || gameMap.getMyPlayer().getShipyardLocation().equals(vector)) {
+			return Optional.empty();
+		}
+		HeuristicsPlan plan = Heuristics.execute(location, vector, gameMap.getMyPlayer().getShipyardLocation(), currentHalite, targetHalite, mineMap, cutoff);
+		if (plan == null) {
+			return Optional.empty();
+		} else {
+			return Optional.of(plan);
+		}
+		/*
 		int haliteNeeded = targetHalite - currentHalite;
 		for (int k = 0; k < 8; ++k) {
 			Quad quad = getQuad(vector, k);
@@ -81,6 +91,7 @@ public class GeneratorStrategy implements Strategy {
 			}
 		}
 		return Optional.empty();
+		*/
 	}
 	public void updateShipyardScores(Map<Vector, Integer> mineMap, int targetHalite, int num) {
 		try (Benchmark b = new Benchmark("Updating " + num + " Shipyard Scores: %ss")) {

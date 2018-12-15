@@ -69,7 +69,7 @@ public class Vector implements Comparable<Vector> {
 	}
 	public Direction getDirectionTo(Vector vector, GameMap gameMap) {
 		// TODO make more efficient
-		for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
+		for (Direction direction : Direction.values()) {
 			if (this.add(direction, gameMap).equals(vector)) {
 				return direction;
 			}
