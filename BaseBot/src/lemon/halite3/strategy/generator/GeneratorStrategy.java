@@ -150,6 +150,22 @@ public class GeneratorStrategy implements Strategy {
 						}
 					}
 				}
+				int[][] inspired = new int[gameMap.getWidth()][gameMap.getHeight()];
+				// Mark enemies to not crash into them
+				for (GamePlayer player : gameMap.getPlayers()) {
+					if (player.getPlayerId() == gameMap.getMyPlayerId()) {
+						continue;
+					}
+					for (Ship ship : player.getShips().values()) {
+						if (ship.getHalite() < GameConstants.MAX_HALITE * 4 / 5) {
+							if (ship.getLocation().getManhattanDistance(gameMap.getMyPlayer().getShipyardLocation(), gameMap) > 1) { // Prevent shipyard blocking - TODO: prevent dropoff blocking
+								for (Direction direction : Direction.values()) {
+									moveQueue.markUnsafe(ship.getLocation().add(direction, gameMap));
+								}
+							}
+						}
+					}
+				}
 				Map<Vector, Integer> mineMap = new HashMap<Vector, Integer>();
 				// updates shipPriority
 				try (Benchmark b2 = new Benchmark("Updated Ship Priorities: %ss")) {
@@ -253,11 +269,18 @@ public class GeneratorStrategy implements Strategy {
 				moveQueue.resolveCollisions(shipPriorities);
 				// Try to spawn a ship
 				if (moveQueue.isSafe(gameMap.getMyPlayer().getShipyardLocation())) {
-					if (gameMap.getMyPlayer().getShips().size() >= 0 && 
+					if (gameMap.getMyPlayer().getHalite() >= GameConstants.SHIP_COST) {
+						int turnsLeft = GameConstants.MAX_TURNS - gameMap.getCurrentTurn();
+						Vector vector = shipyardQueue.peek();
+						getPlan(vector, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, GameConstants.MAX_HALITE - 50, turnsLeft).ifPresent(plan -> {
+							Networking.spawnShip();
+						});
+					}
+					/*if (gameMap.getMyPlayer().getShips().size() >= 0 && 
 							gameMap.getMyPlayer().getHalite() >= GameConstants.SHIP_COST && // TODO - consider cost of building dropoffs in the same turn
 							gameMap.getCurrentTurn() < GameConstants.MAX_TURNS / 2) {
 						Networking.spawnShip();
-					}
+					}*/
 				}
 				moveQueue.send();
 				Networking.endTurn();
