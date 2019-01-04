@@ -76,7 +76,7 @@ public class GeneratorStrategy implements Strategy {
 	public void updateShipyardScores(Map<Vector, Integer> mineMap, int targetHalite, int num) {
 		try (Benchmark b = new Benchmark("Updating " + num + " Shipyard Scores: %ss")) {
 			// Update shipyardScores and shipyardQueue
-			List<Vector> updated = new ArrayList<Vector>();
+			Vector[] updated = new Vector[num];
 			for (int i = 0; i < num; ++i) {
 				Vector polled = shipyardQueue.poll();
 				HeuristicsPlan plan = getPlan(polled, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, targetHalite, Integer.MAX_VALUE);
@@ -85,7 +85,7 @@ public class GeneratorStrategy implements Strategy {
 				} else {
 					shipyardScores.put(polled, plan.getTotalTurns());
 				}
-				updated.add(polled);
+				updated[i] = polled;
 			}
 			for (Vector vector : updated) {
 				shipyardQueue.add(vector);
