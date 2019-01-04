@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Set;
 
 import lemon.halite3.util.Direction;
 import lemon.halite3.util.GameConstants;
@@ -46,23 +45,8 @@ public class Heuristics {
 		}
 		return plan;
 	}
-	public static HeuristicsPlan execute(Vector start, int halite, int haliteNeeded, Set<Vector> vectors, Vector end, Map<Vector, Integer> mineMap, int cutoff) {
-		List<Vector> order = getOrder(start, vectors, end, cutoff);
-		if (order == null) {
-			return null;
-		}
-		List<Vector> path = getPath(order);
-		HeuristicsPlan plan = getPlan(path, halite, haliteNeeded, mineMap, cutoff);
-		if (plan != null) {
-			Direction a = getDirection(start.getX(), order.get(1).getX(), gameMap.getWidth(), Direction.WEST, Direction.EAST);
-			Direction b = getDirection(start.getY(), order.get(1).getY(), gameMap.getHeight(), Direction.NORTH, Direction.SOUTH);
-			Direction planned = path.get(0).getDirectionTo(path.get(1), gameMap);
-			plan.setAlternateDirection(a == planned ? (start.getY() != order.get(1).getY() ? b : Direction.STILL) : (start.getX() != order.get(1).getX() ? a : Direction.STILL));
-		}
-		return plan;
-	}
 	public static List<Vector> getPath(Vector start, Vector end, int cutoff){
-		if (start.getManhattanDistance(end, gameMap) >= cutoff) {
+		if (start.getManhattanDistance(end, gameMap) > cutoff) {
 			return null;
 		}
 		List<Vector> path = new ArrayList<Vector>();
@@ -71,7 +55,7 @@ public class Heuristics {
 		return path;
 	}
 	public static List<Vector> getPath(Vector start, Vector middle, Vector end, int cutoff){
-		if (start.getManhattanDistance(middle, gameMap) + middle.getManhattanDistance(end, gameMap) >= cutoff) {
+		if (start.getManhattanDistance(middle, gameMap) + middle.getManhattanDistance(end, gameMap) > cutoff) {
 			return null;
 		}
 		List<Vector> path = new ArrayList<Vector>();
@@ -79,36 +63,6 @@ public class Heuristics {
 		addPath(middle, end, path);
 		path.add(end);
 		return path;
-	}
-	public static List<Vector> getOrder(Vector start, Set<Vector> vectors, Vector end, int cutoff){
-		List<Vector> order = new ArrayList<Vector>();
-		int totalDistance = 0;
-		Vector current = start;
-		order.add(current);
-		while (!vectors.isEmpty()) {
-			int bestDistance = Integer.MAX_VALUE;
-			Vector bestVector = null;
-			for (Vector vector : vectors) {
-				int distance = current.getManhattanDistance(vector, gameMap);
-				if (distance < bestDistance) {
-					bestDistance = distance;
-					bestVector = vector;
-				}
-			}
-			totalDistance += bestDistance;
-			if (totalDistance >= cutoff) {
-				return null;
-			}
-			order.add(bestVector);
-			vectors.remove(bestVector);
-			current = bestVector;
-		}
-		totalDistance += current.getManhattanDistance(end, gameMap);
-		if (totalDistance >= cutoff) {
-			return null;
-		}
-		order.add(end);
-		return order;
 	}
 	public static List<Vector> getPath(List<Vector> order){
 		List<Vector> totalPath = new ArrayList<Vector>();
@@ -148,6 +102,9 @@ public class Heuristics {
 				// mine some halite
 				Vector mineLocation = queue.poll();
 				plan.incrementMineCount(mineLocation);
+				if (plan.getTotalTurns() > cutoff) {
+					return false;
+				}
 				int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0) - tempMineMap.getOrDefault(mineLocation, 0);
 				int mined = getMined(haliteLeft);
 				halite += mined + counts.getOrDefault(mineLocation, 0) * 
@@ -160,28 +117,31 @@ public class Heuristics {
 			counts.put(vector, counts.getOrDefault(vector, 0) + 1);
 			halite -= (gameMap.getHalite(vector) - tempMineMap.getOrDefault(vector, 0)) / GameConstants.MOVE_COST_RATIO; // Subtract move cost from halite
 		}
-		// Pop out desired amount
-		while (halite < haliteNeeded) {
-			Vector mineLocation = queue.poll();
-			plan.incrementMineCount(mineLocation);
-			if (plan.getTotalTurns() >= cutoff) {
-				return false;
+		if (plan.getTotalTurns() < cutoff) {
+			// Pop out desired amount
+			while (halite < haliteNeeded) {
+				Vector mineLocation = queue.poll();
+				plan.incrementMineCount(mineLocation);
+				if (plan.getTotalTurns() >= cutoff) { // TODO: Off by 1? >= or > ??
+					break;
+				}
+				int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0) - tempMineMap.getOrDefault(mineLocation, 0);
+				if (haliteLeft <= 0) {
+					//plan.addTotalTurns(9999);
+					//break;
+					return false;
+				}
+				int mined = getMined(haliteLeft);
+				halite += mined + counts.get(mineLocation) * 
+						(haliteLeft / GameConstants.MOVE_COST_RATIO - (haliteLeft - mined) / GameConstants.MOVE_COST_RATIO);
+				tempMineMap.put(mineLocation, tempMineMap.getOrDefault(mineLocation, 0) + mined);
+				// Put mineLocation back to queue
+				mineValues.put(mineLocation, getMineValue(mineLocation, mineMap, tempMineMap, totalCounts));
+				queue.add(mineLocation);
 			}
-			int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0) - tempMineMap.getOrDefault(mineLocation, 0);
-			if (haliteLeft <= 0) {
-				plan.addTotalTurns(9999);
-				plan.setMineMap(tempMineMap);
-				return plan.getTotalTurns() < cutoff;
-			}
-			int mined = getMined(haliteLeft);
-			halite += mined + counts.get(mineLocation) * 
-					(haliteLeft / GameConstants.MOVE_COST_RATIO - (haliteLeft - mined) / GameConstants.MOVE_COST_RATIO);
-			tempMineMap.put(mineLocation, tempMineMap.getOrDefault(mineLocation, 0) + mined);
-			// Put mineLocation back to queue
-			mineValues.put(mineLocation, getMineValue(mineLocation, mineMap, tempMineMap, totalCounts));
-			queue.add(mineLocation);
 		}
 		plan.setMineMap(tempMineMap);
+		plan.setHalite(halite);
 		return true;
 	}
 	public static int getMined(int halite) {
@@ -233,10 +193,11 @@ public class Heuristics {
 		private Map<Vector, Integer> mineMap;
 		private int totalTurns;
 		private Direction alternateDirection;
+		private int halite;
 		public HeuristicsPlan(List<Vector> totalPath) {
 			this.totalPath = totalPath;
 			this.mineCounts = new HashMap<Vector, Integer>();
-			this.totalTurns = totalPath.size();
+			this.totalTurns = totalPath.size() - 1;
 		}
 		public List<Vector> getTotalPath(){
 			return totalPath;
@@ -265,6 +226,12 @@ public class Heuristics {
 		}
 		public Direction getAlternateDirection() {
 			return alternateDirection;
+		}
+		public void setHalite(int halite) {
+			this.halite = halite;
+		}
+		public int getHalite() {
+			return halite;
 		}
 	}
 }

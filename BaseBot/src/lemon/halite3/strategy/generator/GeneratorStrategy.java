@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 
@@ -57,41 +56,22 @@ public class GeneratorStrategy implements Strategy {
 		for (int i = 0; i < gameMap.getWidth(); ++i) {
 			for (int j = 0; j < gameMap.getHeight(); ++j) {
 				Vector vector = Vector.getInstance(i, j);
-				getPlan(vector, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, targetHalite, Integer.MAX_VALUE).ifPresent(plan -> {
+				HeuristicsPlan plan = getPlan(vector, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, targetHalite, Integer.MAX_VALUE);
+				if (plan == null) {
+					shipyardScores.put(vector, 99999);
+				} else {
 					shipyardScores.put(vector, plan.getTotalTurns());
-					shipyardQueue.add(vector);
-				});
+				}
+				shipyardQueue.add(vector);
 			}
 		}
 		return "GeneratorStrategy";
 	}
-	public Optional<HeuristicsPlan> getPlan(Vector vector, Map<Vector, Integer> mineMap, Vector location, int currentHalite, int targetHalite, int cutoff) {
+	public HeuristicsPlan getPlan(Vector vector, Map<Vector, Integer> mineMap, Vector location, int currentHalite, int targetHalite, int cutoff) {
 		if (location.equals(vector) || gameMap.getMyPlayer().getShipyardLocation().equals(vector)) {
-			return Optional.empty();
+			return null;
 		}
-		HeuristicsPlan plan = Heuristics.execute(location, vector, gameMap.getMyPlayer().getShipyardLocation(), currentHalite, targetHalite, mineMap, cutoff);
-		if (plan == null) {
-			return Optional.empty();
-		} else {
-			return Optional.of(plan);
-		}
-		/*
-		int haliteNeeded = targetHalite - currentHalite;
-		for (int k = 0; k < 8; ++k) {
-			Quad quad = getQuad(vector, k);
-			if (getHaliteCount(quad, mineMap) > haliteNeeded * 4) {
-				Set<Vector> vectors = getVectors(mineMap, quad, haliteNeeded);
-				HeuristicsPlan plan = Heuristics.execute(location,
-						currentHalite, targetHalite, vectors, gameMap.getMyPlayer().getShipyardLocation(), mineMap, cutoff);
-				if (plan == null) {
-					return Optional.empty();
-				} else {
-					return Optional.of(plan);
-				}
-			}
-		}
-		return Optional.empty();
-		*/
+		return Heuristics.execute(location, vector, gameMap.getMyPlayer().getShipyardLocation(), currentHalite, targetHalite, mineMap, cutoff);
 	}
 	public void updateShipyardScores(Map<Vector, Integer> mineMap, int targetHalite, int num) {
 		try (Benchmark b = new Benchmark("Updating " + num + " Shipyard Scores: %ss")) {
@@ -99,8 +79,12 @@ public class GeneratorStrategy implements Strategy {
 			List<Vector> updated = new ArrayList<Vector>();
 			for (int i = 0; i < num; ++i) {
 				Vector polled = shipyardQueue.poll();
-				HeuristicsPlan plan = getPlan(polled, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, targetHalite, Integer.MAX_VALUE).get();
-				shipyardScores.put(polled, plan.getTotalTurns());
+				HeuristicsPlan plan = getPlan(polled, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, targetHalite, Integer.MAX_VALUE);
+				if (plan == null) {
+					shipyardScores.put(polled, 99999);
+				} else {
+					shipyardScores.put(polled, plan.getTotalTurns());
+				}
 				updated.add(polled);
 			}
 			for (Vector vector : updated) {
@@ -135,37 +119,9 @@ public class GeneratorStrategy implements Strategy {
 					DP.reset();
 				}
 				MoveQueue moveQueue = new MoveQueue(gameMap);
-				// Mark enemies to not crash into them
-				for (GamePlayer player : gameMap.getPlayers()) {
-					if (player.getPlayerId() == gameMap.getMyPlayerId()) {
-						continue;
-					}
-					for (Ship ship : player.getShips().values()) {
-						if (ship.getHalite() < GameConstants.MAX_HALITE * 4 / 5) {
-							if (ship.getLocation().getManhattanDistance(gameMap.getMyPlayer().getShipyardLocation(), gameMap) > 1) { // Prevent shipyard blocking - TODO: prevent dropoff blocking
-								for (Direction direction : Direction.values()) {
-									moveQueue.markUnsafe(ship.getLocation().add(direction, gameMap));
-								}
-							}
-						}
-					}
-				}
+				final int turnBuffer = Math.min(gameMap.getMyPlayer().getShips().size() / 2 + 1, 10);
+				final int turnsLeft = GameConstants.MAX_TURNS - gameMap.getCurrentTurn() - turnBuffer;
 				int[][] inspired = new int[gameMap.getWidth()][gameMap.getHeight()];
-				// Mark enemies to not crash into them
-				for (GamePlayer player : gameMap.getPlayers()) {
-					if (player.getPlayerId() == gameMap.getMyPlayerId()) {
-						continue;
-					}
-					for (Ship ship : player.getShips().values()) {
-						if (ship.getHalite() < GameConstants.MAX_HALITE * 4 / 5) {
-							if (ship.getLocation().getManhattanDistance(gameMap.getMyPlayer().getShipyardLocation(), gameMap) > 1) { // Prevent shipyard blocking - TODO: prevent dropoff blocking
-								for (Direction direction : Direction.values()) {
-									moveQueue.markUnsafe(ship.getLocation().add(direction, gameMap));
-								}
-							}
-						}
-					}
-				}
 				Map<Vector, Integer> mineMap = new HashMap<Vector, Integer>();
 				// updates shipPriority
 				try (Benchmark b2 = new Benchmark("Updated Ship Priorities: %ss")) {
@@ -184,9 +140,7 @@ public class GeneratorStrategy implements Strategy {
 					// Remove dead ships
 					shipPriorities.removeIf(shipId -> !gameMap.getMyPlayer().getShips().containsKey(shipId));
 				}
-				// TODO: apply to shipyardQueue and shipyardScores
-				// TODO: Problem: does not account for halite droppings having enough for 950 capacity
-				int targetHalite = Math.max(Math.min(GameConstants.MAX_HALITE - 50, (gameMap.getTotalHalite() / Math.max(getTotalShips(), 1))), 0);
+				int targetHalite = GameConstants.MAX_HALITE - 50;
 				try (Benchmark b3 = new Benchmark("Executed Ships: %ss")) {
 					for (int shipId : shipPriorities) {
 						Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
@@ -194,13 +148,17 @@ public class GeneratorStrategy implements Strategy {
 							updateShipyardScores(mineMap, targetHalite, 50);
 							// Execute plan
 							Vector vector = shipyardQueue.peek();
-							HeuristicsPlan plan = getPlan(vector, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, targetHalite, Integer.MAX_VALUE).get();
-							lastPlan.put(shipId, vector);
-							// Apply bestPlan's mineMap
-							for (Vector v : plan.getMineMap().keySet()) {
-								mineMap.put(v, mineMap.getOrDefault(v, 0) + plan.getMineMap().get(v));
+							HeuristicsPlan plan = getPlan(vector, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, targetHalite, turnsLeft);
+							if (plan == null) {
+								moveQueue.move(shipId, Direction.STILL);
+							} else {
+								lastPlan.put(shipId, vector);
+								// Apply bestPlan's mineMap
+								for (Vector v : plan.getMineMap().keySet()) {
+									mineMap.put(v, mineMap.getOrDefault(v, 0) + plan.getMineMap().get(v));
+								}
+								handleMicro(moveQueue, ship, plan);
 							}
-							handleMicro(moveQueue, ship, plan);
 							continue;
 						}
 						// State Saver Info
@@ -209,8 +167,11 @@ public class GeneratorStrategy implements Strategy {
 						// BFS search for mine target
 						Deque<Vector> queue = new ArrayDeque<Vector>();
 						Set<Vector> visited = new HashSet<Vector>();
-						HeuristicsPlan bestPlan = Heuristics.execute(ship.getLocation(), gameMap.getMyPlayer().getShipyardLocation(),
-								ship.getHalite(), targetHalite, mineMap, Integer.MAX_VALUE);
+						HeuristicsPlan bestPlan = null;
+						for (int i = 0; bestPlan == null && i <= turnBuffer; i++) { // lol lazy hack
+							bestPlan = Heuristics.execute(ship.getLocation(), gameMap.getMyPlayer().getShipyardLocation(),
+									ship.getHalite(), targetHalite, mineMap, turnsLeft + i);
+						}
 						Vector bestVector = null;
 						queue.add(ship.getLocation());
 						visited.add(ship.getLocation());
@@ -219,10 +180,8 @@ public class GeneratorStrategy implements Strategy {
 							Vector vector = queue.poll();
 							if (condition) {
 								try (Benchmark b = new Benchmark()){
-									getPlan(vector, mineMap, ship.getLocation(), ship.getHalite(), targetHalite, Integer.MAX_VALUE).ifPresent(plan -> {
-										//quads.put(vector, quad);
-										plans.put(vector, plan);
-									});
+									HeuristicsPlan plan = getPlan(vector, mineMap, ship.getLocation(), ship.getHalite(), targetHalite, Integer.MAX_VALUE);
+									plans.put(vector, plan);
 									stateSaverTime += b.peek();
 								}
 							}
@@ -230,11 +189,18 @@ public class GeneratorStrategy implements Strategy {
 									((!isLowOnTime(benchmark, 50)) && ship.getLocation().equals(gameMap.getMyPlayer().getShipyardLocation())) || 
 									((!isLowOnTime(benchmark, 200)) && (Math.random() < (0.05 - 0.02 * ((gameMap.getWidth() >= 48 ? 1 : 0) + (gameMap.getMyPlayer().getShips().size() >= 20 ? 1 : 0)))))) {
 								// TODO: break when there's no point of looking for more (bestPlanScore < vector.getManhattanDistance(vector, gameMap))
-								Optional<HeuristicsPlan> plan = getPlan(vector, mineMap, ship.getLocation(), ship.getHalite(), targetHalite, bestPlan.getTotalTurns());
-								if (plan.isPresent()) {
-									assert plan.get().getTotalTurns() < bestPlan.getTotalTurns();
-									bestPlan = plan.get();
-									bestVector = vector;
+								int cutoff = bestPlan == null ? turnsLeft : bestPlan.getTotalTurns();
+								HeuristicsPlan plan = getPlan(vector, mineMap, ship.getLocation(), ship.getHalite(), targetHalite, cutoff);
+								if (plan != null) {
+									if (bestPlan == null) {
+										bestPlan = plan;
+										bestVector = vector;
+									} else {
+										if ((bestPlan.getHalite() >= targetHalite) ? (plan.getHalite() >= targetHalite) : (plan.getHalite() >= bestPlan.getHalite())) {
+											bestPlan = plan;
+											bestVector = vector;
+										}
+									}
 								}
 							}
 							for (Direction direction : Direction.CARDINAL_DIRECTIONS) {
@@ -252,6 +218,9 @@ public class GeneratorStrategy implements Strategy {
 								mineMap.put(vector, mineMap.getOrDefault(vector, 0) + bestPlan.getMineMap().get(vector));
 							}
 							handleMicro(moveQueue, ship, bestPlan);
+						} else {
+							//moveQueue.createDropoff(shipId);
+							moveQueue.move(shipId, Direction.STILL);
 						}
 						// State Saver
 						if (bestPlan != null && condition) {
@@ -265,16 +234,36 @@ public class GeneratorStrategy implements Strategy {
 					}
 				}
 				updateShipyardScores(mineMap, targetHalite, 100);
+				// Check for endgame ignore crashing
+				Vector vector = shipyardQueue.peek();
+				HeuristicsPlan plan = getPlan(vector, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, GameConstants.MAX_HALITE - 50, turnsLeft);
+				if (plan == null) {
+					moveQueue.markIgnore(gameMap.getMyPlayer().getShipyardLocation());
+				} else {
+					// Mark enemies to not crash into them
+					for (GamePlayer player : gameMap.getPlayers()) {
+						if (player.getPlayerId() == gameMap.getMyPlayerId()) {
+							continue;
+						}
+						for (Ship ship : player.getShips().values()) {
+							if (ship.getHalite() < GameConstants.MAX_HALITE * 4 / 5) {
+								if (ship.getLocation().getManhattanDistance(gameMap.getMyPlayer().getShipyardLocation(), gameMap) > 1) { // Prevent shipyard blocking - TODO: prevent dropoff blocking
+									for (Direction direction : Direction.values()) {
+										moveQueue.markUnsafe(ship.getLocation().add(direction, gameMap));
+									}
+								}
+							}
+						}
+					}
+				}
 				// Resolve Collisions
 				moveQueue.resolveCollisions(shipPriorities);
 				// Try to spawn a ship
 				if (moveQueue.isSafe(gameMap.getMyPlayer().getShipyardLocation())) {
 					if (gameMap.getMyPlayer().getHalite() >= GameConstants.SHIP_COST) {
-						int turnsLeft = GameConstants.MAX_TURNS - gameMap.getCurrentTurn();
-						Vector vector = shipyardQueue.peek();
-						getPlan(vector, mineMap, gameMap.getMyPlayer().getShipyardLocation(), 0, GameConstants.MAX_HALITE - 50, turnsLeft).ifPresent(plan -> {
+						if (plan != null && plan.getHalite() >= GameConstants.MAX_HALITE - 50) {
 							Networking.spawnShip();
-						});
+						}
 					}
 					/*if (gameMap.getMyPlayer().getShips().size() >= 0 && 
 							gameMap.getMyPlayer().getHalite() >= GameConstants.SHIP_COST && // TODO - consider cost of building dropoffs in the same turn

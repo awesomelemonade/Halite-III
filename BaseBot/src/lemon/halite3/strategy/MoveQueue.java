@@ -1,9 +1,11 @@
 package lemon.halite3.strategy;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import lemon.halite3.util.Direction;
 import lemon.halite3.util.GameConstants;
@@ -16,12 +18,19 @@ public class MoveQueue {
 	private GameMap gameMap;
 	private Map<Integer, Direction[]> map;
 	private Map<Integer, Direction> resolved;
+	private Set<Integer> createDropoffs;
 	private boolean[][] unsafe;
+	private Set<Vector> ignore;
 	public MoveQueue(GameMap gameMap) {
 		this.gameMap = gameMap;
 		this.map = new HashMap<Integer, Direction[]>();
 		this.resolved = new HashMap<Integer, Direction>();
+		this.createDropoffs = new HashSet<Integer>();
 		this.unsafe = new boolean[gameMap.getWidth()][gameMap.getHeight()];
+		this.ignore = new HashSet<Vector>();
+	}
+	public void createDropoff(int shipId) {
+		createDropoffs.add(shipId);
 	}
 	public void move(int shipId, Direction... directions) {
 		map.put(shipId, directions);
@@ -29,7 +38,13 @@ public class MoveQueue {
 	public void move(Ship ship, Direction... directions) {
 		this.move(ship.getShipId(), directions);
 	}
+	public void markIgnore(Vector vector) {
+		ignore.add(vector);
+	}
 	public void markUnsafe(Vector vector) {
+		if (ignore.contains(vector)) {
+			return;
+		}
 		unsafe[vector.getX()][vector.getY()] = true;
 	}
 	public boolean isUnsafe(Vector vector) {
@@ -48,6 +63,11 @@ public class MoveQueue {
 	}
 	public void resolveCollisions(List<Integer> shipPriorities) {
 		resolved.clear();
+		// Handle dropoff creations
+		for (int shipId : createDropoffs) {
+			Networking.transformShipIntoDropoffSite(shipId);
+			resolved.put(shipId, null);
+		}
 		// Handle ships forced to stand still
 		for (int shipId : shipPriorities) {
 			Ship ship = gameMap.getMyPlayer().getShips().get(shipId);
@@ -96,7 +116,9 @@ public class MoveQueue {
 	}
 	public void send() {
 		for (Entry<Integer, Direction> entry : resolved.entrySet()) {
-			Networking.move(entry.getKey(), entry.getValue());
+			if (entry.getValue() != null) {
+				Networking.move(entry.getKey(), entry.getValue());
+			}
 		}
 	}
 }
