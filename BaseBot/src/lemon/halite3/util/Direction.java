@@ -1,11 +1,11 @@
 package lemon.halite3.util;
 
 public enum Direction {
-	NORTH('n', new Vector(0, -1)),
-	SOUTH('s', new Vector(0, 1)),
-	WEST('w', new Vector(-1, 0)),
-	EAST('e', new Vector(1, 0)),
-	STILL('o', new Vector(0, 0));
+	NORTH('n', Vector.getOffsetVector(0, -1)),
+	SOUTH('s', Vector.getOffsetVector(0, 1)),
+	WEST('w', Vector.getOffsetVector(-1, 0)),
+	EAST('e', Vector.getOffsetVector(1, 0)),
+	STILL('o', Vector.getOffsetVector(0, 0));
 	
 	public static final Direction[] CARDINAL_DIRECTIONS = new Direction[] {NORTH, SOUTH, WEST, EAST};
 	public static final Direction[][] RANDOM_CARDINAL_DIRECTIONS = new Direction[][] {

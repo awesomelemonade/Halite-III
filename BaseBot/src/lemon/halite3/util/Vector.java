@@ -18,10 +18,13 @@ public class Vector implements Comparable<Vector> {
 		}
 		return array[x][y];
 	}
+	public static Vector getOffsetVector(int x, int y) {
+		return new Vector(x, y);
+	}
 	public static Vector getInstance(StringTokenizer tokenizer) {
 		return Vector.getInstance(Integer.parseInt(tokenizer.nextToken()), Integer.parseInt(tokenizer.nextToken()));
 	}
-	protected Vector(int x, int y) {
+	private Vector(int x, int y) {
 		this.x = x;
 		this.y = y;
 	}
