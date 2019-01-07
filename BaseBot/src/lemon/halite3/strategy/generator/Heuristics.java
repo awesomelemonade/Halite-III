@@ -127,9 +127,7 @@ public class Heuristics {
 				}
 				int haliteLeft = gameMap.getHalite(mineLocation) - mineMap.getOrDefault(mineLocation, 0) - tempMineMap.getOrDefault(mineLocation, 0);
 				if (haliteLeft <= 0) {
-					//plan.addTotalTurns(9999);
-					//break;
-					return false;
+					break;
 				}
 				int mined = getMined(haliteLeft);
 				halite += mined + counts.get(mineLocation) * 
